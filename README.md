@@ -1,1 +1,1 @@
-# 6907AppliedML
+# 6907 Applied ML
