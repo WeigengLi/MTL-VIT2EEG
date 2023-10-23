@@ -1,26 +1,34 @@
-# 6907 Applied ML
+# MLT-VIT2EEG
+## Overview
+Electroencephalography (EEG) is a critical technology in the domain of human-computer interaction and cognitive neuroscience.   
+MLT-ViT2EEG is a Multi Task Learning approch to Decode EEG data using Vision Transformer. Our model’s main objective is to improve the Vision Transformer's performance on EEG eye-tracking tasks.  
+This repository consists of model and our paper proposal.  
 
-## Tasks
+# Where to Find?
+Our purposed Models and benchmark models are in 'models' folder  
+We use jupyter notebook to store our experiment results. For reproduction, please run the notebooks
 
-- [x] Related work (differ from previous work): current SOTA models and previous work on this task
-- [x] Research Question Format: Challenges -> How to solve
-- [ ] Read papers about Transformer, Vit variants, and EEG data
-- [ ] Come up some IDEAs! (by 10.7)
+## Dataset download
+Download data for EEGEyeNet absolute position task
+```bash
+wget -O "./dataset/Position_task_with_dots_synchronised_min.npz" "https://osf.io/download/ge87t/"
+```
+For more details about EEGEyeNet dataset, please refer to ["EEGEyeNet: a Simultaneous Electroencephalography and Eye-tracking Dataset and Benchmark for Eye Movement Prediction"](https://arxiv.org/abs/2111.05100) and [OSF repository](https://osf.io/ktv7m/)
 
-- [ ] Download the datset
-- [ ] Preprocess the data
-- [ ] Reproduce "Vit2EEG" paper with small samples, which helps us understand the dataset
+## Installation
 
-## Step by step
+### Requirements
 
-### Part 1
+First install the general_requirements.txt
 
-- [x] Read papers about Transformer, Vit variants
-- [x] Figure out challenges in EEG dataset (EEGEyeNet gaze position)
-- [x] Now we have our research question: How to address xxx challenge in EEG dataset?
+```bash
+pip3 install -r general_requirements.txt 
+```
 
-### Part 2
+### Pytorch Requirements
 
-- [x] Think about this question: Transformers -> strengths, weaknesses, and potential applications
-- [ ] How to apply Transformer to this dataset?
-- [ ] Now we have our proposed method
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+For other installation details and different cuda versions, visit [pytorch.org](https://pytorch.org/get-started/locally/).
