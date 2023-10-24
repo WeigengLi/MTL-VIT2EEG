@@ -10,4 +10,8 @@ tables/*
 .vscode/*
 *.npz
 *.pth
-*.ipynb
+# ignore dataset
+dataset/*
+
+# Excpet code in this folder 
+!dataset/EEGEyeNet.py
