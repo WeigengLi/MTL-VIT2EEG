@@ -32,3 +32,11 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 ```
 
 For other installation details and different cuda versions, visit [pytorch.org](https://pytorch.org/get-started/locally/).
+
+## How to run?
+
+### Tensorboard
+
+```bash
+tensorboard --logdir logs
+```
