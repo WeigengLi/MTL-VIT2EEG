@@ -3,3 +3,4 @@ numpy
 scipy
 transformers
 tqdm
+tensorboard
