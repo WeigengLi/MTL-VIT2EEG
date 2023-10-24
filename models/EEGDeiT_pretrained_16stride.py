@@ -20,7 +20,7 @@ class EEGViT_pretrained(nn.Module):
             bias=False
         )
         self.batchnorm1 = nn.BatchNorm2d(256, False)
-        model_name = "google/vit-base-patch16-224"
+        model_name = "facebook/deit-base-distilled-patch16-224"
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 256})
         config.update({'image_size': (129, 32)})

@@ -11,9 +11,9 @@ class EEGDeiT_pretrained(nn.Module):
         self.conv1 = nn.Conv2d(
             in_channels=1, 
             out_channels=256,
-            kernel_size=(1, 36),
-            stride=(1, 36),
-            padding=(0,2),
+            kernel_size=(1, 16),
+            stride=(1, 16),
+            padding=(0,4),
             bias=False
         )
         self.batchnorm1 = nn.BatchNorm2d(256, False)
