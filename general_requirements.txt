@@ -4,3 +4,4 @@ scipy
 transformers
 tqdm
 tensorboard
+jupyter
