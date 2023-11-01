@@ -92,7 +92,7 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
             positions, x_reconstructed = model(inputs)
 
             position_loss = criterion(positions.squeeze(), targets.squeeze())
-            reconstruction_loss = criterion(x_reconstructed, inputs)
+            reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
             loss = position_loss + reconstruction_weight * reconstruction_loss
 
             # Compute the gradients and update the parameters
