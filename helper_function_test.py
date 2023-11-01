@@ -69,9 +69,6 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
 
     # Initialize tensorboard
     writer = SummaryWriter(log_dir=output_dir + '/' + log_name)
-    iteration = 0
-    val_iteration = 0
-    test_iteration = 0
 
     # Initialize lists to store losses
     train_losses = []
@@ -82,6 +79,8 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
     for epoch in range(n_epoch):
         model.train()
         epoch_train_loss = 0.0
+        epoch_train_position_loss = 0.0
+        epoch_train_reconstruction_loss = 0.0
 
         for i, (inputs, targets, index) in tqdm(enumerate(train_loader)):
             # Move the inputs and targets to the GPU (if available)
@@ -100,26 +99,31 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
             loss.backward()
             optimizer.step()
             epoch_train_loss += loss.item()
+            epoch_train_position_loss += position_loss.item()
+            epoch_train_reconstruction_loss += reconstruction_loss.item()
 
             # Print the loss and accuracy for the current batch
             if i % 100 == 0:
                 print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
                       f" reconstruction loss: {reconstruction_loss.item()} RMSE(mm): {Cal_RMSE(position_loss.item())}")
 
-            # Log
-            iteration += 1
-            writer.add_scalar('Loss/train', loss.item(), iteration)
-            writer.add_scalar('position_loss/train', position_loss.item(), iteration)
-            writer.add_scalar('reconstruction_loss/train', reconstruction_loss.item(), iteration)
-            writer.add_scalar('RMSE/train', Cal_RMSE(position_loss.item()), iteration)
-
         epoch_train_loss /= len(train_loader)
+        epoch_train_position_loss /= len(train_loader)
+        epoch_train_reconstruction_loss /= len(train_loader)
         train_losses.append(epoch_train_loss)
+
+        # Log
+        writer.add_scalar('Loss/train', epoch_train_loss, epoch)
+        writer.add_scalar('Position_Loss/train', epoch_train_position_loss, epoch)
+        writer.add_scalar('Reconstruction_Loss/train', epoch_train_reconstruction_loss, epoch)
+        writer.add_scalar('RMSE of Position Loss/train', Cal_RMSE(epoch_train_position_loss), epoch)
 
         # Evaluate the model on the validation set
         model.eval()
         with torch.no_grad():
             val_loss = 0.0
+            val_position_loss = 0.0
+            val_reconstruction_loss = 0.0
             for inputs, targets, index in val_loader:
                 # Move the inputs and targets to the GPU (if available)
                 inputs = inputs.to(device)
@@ -133,21 +137,26 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
                 loss = position_loss + reconstruction_weight * reconstruction_loss
                 val_loss += loss.item()
-
-                # Log
-                val_iteration += 1
-                writer.add_scalar('Loss/validation', loss.item(), val_iteration)
-                writer.add_scalar('position_loss/validation', position_loss.item(), val_iteration)
-                writer.add_scalar('reconstruction_loss/validation', reconstruction_loss.item(), val_iteration)
-                writer.add_scalar('RMSE/validation', Cal_RMSE(position_loss.item()), val_iteration)
+                val_position_loss += position_loss.item()
+                val_reconstruction_loss += reconstruction_loss.item()
 
             val_loss /= len(val_loader)
+            val_position_loss /= len(val_loader)
+            val_reconstruction_loss /= len(val_loader)
             val_losses.append(val_loss)
 
-            print(f"Epoch {epoch}, Val Loss: {val_loss}, RMSE(mm): {Cal_RMSE(val_loss)}")
+            # Log
+            writer.add_scalar('Loss/validation', val_loss, epoch)
+            writer.add_scalar('Position_Loss/validation', val_position_loss, epoch)
+            writer.add_scalar('Reconstruction_Loss/validation', val_reconstruction_loss, epoch)
+            writer.add_scalar('RMSE of Position Loss/validation', Cal_RMSE(val_position_loss), epoch)
+
+            print(f"Epoch {epoch}, Val Loss: {val_loss}, RMSE(mm): {Cal_RMSE(val_position_loss)}")
 
         with torch.no_grad():
             val_loss = 0.0
+            val_position_loss = 0.0
+            val_reconstruction_loss = 0.0
             for inputs, targets, index in test_loader:
                 # Move the inputs and targets to the GPU (if available)
                 inputs = inputs.to(device)
@@ -160,18 +169,19 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
                 loss = position_loss + reconstruction_weight * reconstruction_loss
                 val_loss += loss.item()
+                val_position_loss += position_loss.item()
+                val_reconstruction_loss += reconstruction_loss.item()
 
                 # Log
-                test_iteration += 1
-                writer.add_scalar('Loss/test', loss.item(), test_iteration)
-                writer.add_scalar('position_loss/test', position_loss.item(), test_iteration)
-                writer.add_scalar('reconstruction_loss/test', reconstruction_loss.item(), test_iteration)
-                writer.add_scalar('RMSE/test', Cal_RMSE(position_loss.item()), test_iteration)
+                writer.add_scalar('Loss/test', val_loss, epoch)
+                writer.add_scalar('Position_Loss/test', val_position_loss, epoch)
+                writer.add_scalar('Reconstruction_Loss/test', val_reconstruction_loss, epoch)
+                writer.add_scalar('RMSE of Position Loss/test', Cal_RMSE(val_position_loss), epoch)
 
             val_loss /= len(test_loader)
             test_losses.append(val_loss)
 
-            print(f"Epoch {epoch}, test Loss: {val_loss}, RMSE(mm): {Cal_RMSE(val_loss)}")
+            print(f"Epoch {epoch}, test Loss: {val_loss}, RMSE(mm): {Cal_RMSE(val_position_loss)}")
 
         if scheduler is not None:
             scheduler.step()
