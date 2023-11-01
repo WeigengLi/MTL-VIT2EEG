@@ -102,7 +102,8 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
 
             # Print the loss and accuracy for the current batch
             if i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, Loss: {loss.item()} RMSE(mm): {Cal_RMSE(position_loss.item())}")
+                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}"+
+                      f" reconstruction loss: {reconstruction_loss.item()} RMSE(mm): {Cal_RMSE(position_loss.item())}")
 
             # Log
             iteration += 1
