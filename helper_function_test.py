@@ -141,9 +141,9 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 targets = targets.to(device)
 
                 # Compute the outputs and loss for the current batch
-                outputs = model(inputs)
+                positions, x_reconstructed = model(inputs)
 
-                loss = criterion(outputs.squeeze(), targets.squeeze())
+                loss = criterion(positions.squeeze(), targets.squeeze())
                 val_loss += loss.item()
 
                 # Log
