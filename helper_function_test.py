@@ -71,6 +71,7 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
     writer = SummaryWriter(output_dir)
     iteration = 0
     val_iteration = 0
+    test_iteration = 0
 
     # Initialize lists to store losses
     train_losses = []
@@ -108,7 +109,9 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
             # Log
             iteration += 1
             writer.add_scalar('Loss/train', loss.item(), iteration)
-            writer.add_scalar('RMSE/train', Cal_RMSE(loss.item()), iteration)
+            writer.add_scalar('position_loss/train', position_loss.item(), iteration)
+            writer.add_scalar('reconstruction_loss/train', reconstruction_loss.item(), iteration)
+            writer.add_scalar('RMSE/train', Cal_RMSE(position_loss.item()), iteration)
 
         epoch_train_loss /= len(train_loader)
         train_losses.append(epoch_train_loss)
@@ -126,8 +129,17 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 positions, x_reconstructed = model(inputs)
 
                 # print(outputs)
-                loss = criterion(positions.squeeze(), targets.squeeze())
+                position_loss = criterion(positions.squeeze(), targets.squeeze())
+                reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
+                loss = position_loss + reconstruction_weight * reconstruction_loss
                 val_loss += loss.item()
+
+                # Log
+                val_iteration += 1
+                writer.add_scalar('Loss/validation', loss.item(), val_iteration)
+                writer.add_scalar('position_loss/validation', position_loss.item(), val_iteration)
+                writer.add_scalar('reconstruction_loss/validation', reconstruction_loss.item(), val_iteration)
+                writer.add_scalar('RMSE/validation', Cal_RMSE(position_loss.item()), val_iteration)
 
             val_loss /= len(val_loader)
             val_losses.append(val_loss)
@@ -144,13 +156,17 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 # Compute the outputs and loss for the current batch
                 positions, x_reconstructed = model(inputs)
 
-                loss = criterion(positions.squeeze(), targets.squeeze())
+                position_loss = criterion(positions.squeeze(), targets.squeeze())
+                reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
+                loss = position_loss + reconstruction_weight * reconstruction_loss
                 val_loss += loss.item()
 
                 # Log
-                val_iteration += 1
-                writer.add_scalar('Loss/validation', loss.item(), val_iteration)
-                writer.add_scalar('RMSE/validation', Cal_RMSE(loss.item()), val_iteration)
+                test_iteration += 1
+                writer.add_scalar('Loss/test', loss.item(), test_iteration)
+                writer.add_scalar('position_loss/test', position_loss.item(), test_iteration)
+                writer.add_scalar('reconstruction_loss/test', reconstruction_loss.item(), test_iteration)
+                writer.add_scalar('RMSE/test', Cal_RMSE(position_loss.item()), test_iteration)
 
             val_loss /= len(test_loader)
             test_losses.append(val_loss)
