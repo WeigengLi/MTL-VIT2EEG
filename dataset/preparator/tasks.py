@@ -1,4 +1,4 @@
-from data_preparation.preparator import Preparator
+from preparator import Preparator
 from preparation_config import preparation_config as config
 import numpy as np
 
@@ -124,6 +124,7 @@ def position_task_data_preparation(feature_extraction, verbose=False):
     preparator.addFilter(name='Keep fixation that are long enough', f=lambda events: events['duration'] >= 500)
     preparator.addLabel(name='x_position', f=lambda events: events['avgpos_x'])
     preparator.addLabel(name='y_position', f=lambda events: events['avgpos_y'])
+    preparator.addLabel(name='pupil_size', f=lambda events: events['avgpupilsize'])
     preparator.run()
 
 def segmentation_task_data_preparation(feature_extraction=False, verbose=False):
@@ -156,5 +157,6 @@ def main():
 
     else:
         raise NotImplementedError("Task " + config['task'] + " is not implemented yet.")
+
 
 main()

@@ -11,13 +11,13 @@ preparation_config = dict()
 # 'Direction_task' (dataset: 'dots' or 'processing_speed'):
 # 'Position_task' (dataset: 'dots'):
 # 'Segmentation_task' (dataset: 'antisaccade', 'dots', or 'processing_speed'):
-preparation_config['task'] = 'LR_task'
-preparation_config['dataset'] = 'antisaccade'
+preparation_config['task'] = 'Position_task'
+preparation_config['dataset'] = 'dots'
 
 # We provide two types of preprocessing on the dataset (minimal preprocessing and maximal preprocessing). Choices are
 # 'max'
 # 'min'
-preparation_config['preprocessing'] = 'max'  # or min
+preparation_config['preprocessing'] = 'min'  # or min
 preparation_config['preprocessing_path'] = 'synchronized_' + preparation_config['preprocessing']
 
 # We provide also dataset where features are extracted
@@ -30,7 +30,8 @@ preparation_config['feature_extraction'] = False
 preparation_config['including_bandpass_data'] = False  # or True (for later)
 
 #The directory of output file and the name
-preparation_config['SAVE_PATH'] = '../data/prepared/'
+preparation_config['SAVE_PATH'] = os.path.join(os.path.dirname(__file__), '..', 'MTL_data/')
+
 preparation_config['output_name'] = preparation_config['task'] + '_with_' + preparation_config['dataset']
 preparation_config['output_name'] = preparation_config['output_name'] + '_' + preparation_config['preprocessing_path']
 preparation_config['output_name'] = preparation_config['output_name'] + ('_hilbert.npz' if preparation_config['feature_extraction'] else '.npz')
@@ -41,7 +42,7 @@ preparation_config['LOAD_ANTISACCADE_PATH'] = '../data/measured/antisaccade_task
 preparation_config['ANTISACCADE_FILE_PATTERN'] = '[go]ip_..._AS_EEG.mat'
 preparation_config['ANTISACCADE_HILBERT_FILE_PATTERN'] = '[go]ip_..._AS_EEG.mat'
 
-preparation_config['LOAD_DOTS_PATH'] = '../data/measured/dots_data/' + preparation_config['preprocessing_path'] + '/'
+preparation_config['LOAD_DOTS_PATH'] = os.path.join(os.path.dirname(__file__), '..', 'synchronized_min/')
 preparation_config['DOTS_FILE_PATTERN'] = '(ep|EP).._DOTS._EEG.mat'
 preparation_config['DOTS_HILBERT_FILE_PATTERN'] = '(ep|EP).._DOTS._EEG.mat'
 

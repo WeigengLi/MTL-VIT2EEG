@@ -5,6 +5,8 @@ import scipy.io
 import pandas as pd
 import re
 from tqdm import tqdm
+import os
+
 
 
 class Preparator:
@@ -123,7 +125,7 @@ class Preparator:
         print(EEG.shape)
         print("Shapes of labels are: ")
         print(labels.shape)
-        np.savez(self.save_directory + self.save_file_name, EEG=EEG, labels=labels)
+        np.savez(self.save_directory + self.save_file_name, EEG=EEG, labels=labels,allow_pickle=True)
 
 
     def _load_v5_events(self, EEG):
@@ -151,6 +153,9 @@ class Preparator:
         events['avgpos_y'] = [el[0, 0] for el in EEG['event'][0]['fix_avgpos_y']]
         # if self.verbose: print(events)
         events['endtime'] = [el[0, 0] for el in EEG['event'][0]['endtime']]
+        
+        events['avgpupilsize'] = [el[0, 0] for el in EEG['event'][0]['fix_avgpupilsize']]
+        
 
         if self.verbose:
             print("Events loaded are: ")
@@ -182,6 +187,8 @@ class Preparator:
         events['avgpos_y'] = [EEG[ref][0, 0] for ref in EEG['event']['fix_avgpos_y'][:, 0]]
         # if self.verbose: print(events)
         events['endtime'] = [EEG[ref][0, 0] for ref in EEG['event']['endtime'][:, 0]]
+        
+        events['avgpupilsize'] = [EEG[ref][0, 0] for ref in EEG['event']['fix_avgpupilsize'][:, 0]]
 
         if self.verbose:
             print("Events loaded are: ")
