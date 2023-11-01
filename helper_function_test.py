@@ -33,7 +33,7 @@ def Cal_RMSE(loss):
     return math.sqrt(loss) / 2
 
 
-def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, output_dir='./logs',
+def train(model, Dataset, optimizer, log_name, scheduler=None, batch_size=64, n_epoch=15, output_dir='./logs',
           reconstruction_weight=0.5):
     '''
         model: model to train
@@ -68,7 +68,7 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
     criterion = criterion.to(device)
 
     # Initialize tensorboard
-    writer = SummaryWriter(output_dir)
+    writer = SummaryWriter(log_dir='logs', filename=log_name)
     iteration = 0
     val_iteration = 0
     test_iteration = 0
@@ -103,7 +103,7 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
 
             # Print the loss and accuracy for the current batch
             if i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}"+
+                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
                       f" reconstruction loss: {reconstruction_loss.item()} RMSE(mm): {Cal_RMSE(position_loss.item())}")
 
             # Log
