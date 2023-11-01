@@ -172,14 +172,14 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 val_position_loss += position_loss.item()
                 val_reconstruction_loss += reconstruction_loss.item()
 
-                # Log
-                writer.add_scalar('Loss/test', val_loss, epoch)
-                writer.add_scalar('Position_Loss/test', val_position_loss, epoch)
-                writer.add_scalar('Reconstruction_Loss/test', val_reconstruction_loss, epoch)
-                writer.add_scalar('RMSE of Position Loss/test', Cal_RMSE(val_position_loss), epoch)
-
             val_loss /= len(test_loader)
             test_losses.append(val_loss)
+
+            # Log
+            writer.add_scalar('Loss/test', val_loss, epoch)
+            writer.add_scalar('Position_Loss/test', val_position_loss, epoch)
+            writer.add_scalar('Reconstruction_Loss/test', val_reconstruction_loss, epoch)
+            writer.add_scalar('RMSE of Position Loss/test', Cal_RMSE(val_position_loss), epoch)
 
             print(f"Epoch {epoch}, test Loss: {val_loss}, RMSE(mm): {Cal_RMSE(val_position_loss)}")
 
