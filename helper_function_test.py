@@ -33,8 +33,8 @@ def Cal_RMSE(loss):
     return math.sqrt(loss) / 2
 
 
-def train(model, Dataset, optimizer,  scheduler=None, batch_size=64, n_epoch=15, output_dir='./logs',
-          reconstruction_weight=0.5,log_name='1',):
+def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, output_dir='./logs',
+          reconstruction_weight=0.5, log_name='1'):
     '''
         model: model to train
         optimizer: optimizer to update weights
@@ -68,7 +68,7 @@ def train(model, Dataset, optimizer,  scheduler=None, batch_size=64, n_epoch=15,
     criterion = criterion.to(device)
 
     # Initialize tensorboard
-    writer = SummaryWriter(log_dir=output_dir, filename_suffix = log_name)
+    writer = SummaryWriter(log_dir=output_dir + '/' + log_name)
     iteration = 0
     val_iteration = 0
     test_iteration = 0
