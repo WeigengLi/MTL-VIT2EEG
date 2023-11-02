@@ -23,3 +23,5 @@ class EEGEyeNetDataset(Dataset):
     def __len__(self):
         # Compute the number of samples in the data array
         return len(self.trainX)
+    
+#EEGEyeNet = EEGEyeNetDataset('dataset/MTL_data/Position_task_with_dots_synchronized_min.npz')
