@@ -119,13 +119,13 @@ class Preparator:
 
         # save the concatenated arrays
         print('Saving data...')
-        EEG = np.concatenate(all_EEG, axis=0)
-        labels = np.concatenate(all_labels, axis=0)
+        EEG = np.concatenate(all_EEG, axis=0, dtype='float')
+        labels = np.concatenate(all_labels, axis=0, dtype='float')
         print("Shapes of EEG are: ")
         print(EEG.shape)
         print("Shapes of labels are: ")
         print(labels.shape)
-        np.savez(self.save_directory + self.save_file_name, EEG=EEG, labels=labels,allow_pickle=True)
+        np.savez(self.save_directory + self.save_file_name, EEG=EEG, labels=labels)
 
 
     def _load_v5_events(self, EEG):
@@ -273,11 +273,11 @@ class Preparator:
         if self.verbose: print("Appending the subject counter. ")
         # append subject IDs to the full list and then the labels
         nr_trials = events.loc[select].shape[0]
-        labels = np.full((nr_trials, 1), subj_counter)
+        labels = np.full((nr_trials, 1), subj_counter, dtype='float')
         if self.verbose: print(labels)
 
         for name, f in self.labels:
             if self.verbose: print("Appending the next label: " + name)
-            labels = np.concatenate((labels, np.asarray(f(events).loc[select]).reshape(-1,1)), axis=1)
+            labels = np.concatenate((labels, np.asarray(f(events).loc[select], dtype='float').reshape(-1,1)), axis=1)
             if self.verbose: print(labels)
         return labels

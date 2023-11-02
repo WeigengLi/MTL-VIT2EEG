@@ -6,7 +6,7 @@ class EEGEyeNetDataset(Dataset):
     def __init__(self, data_file,transpose = True):
         self.data_file = data_file
         print('loading data...')
-        with np.load(self.data_file,allow_pickle=True) as f: # Load the data array
+        with np.load(self.data_file) as f: # Load the data array
             self.trainX = f['EEG']
             self.trainY = f['labels']
         print(self.trainY)
@@ -24,4 +24,4 @@ class EEGEyeNetDataset(Dataset):
         # Compute the number of samples in the data array
         return len(self.trainX)
     
-EEGEyeNet = EEGEyeNetDataset('dataset/MTL_data/Position_task_with_dots_synchronized_min.npz')
+#EEGEyeNet = EEGEyeNetDataset('dataset/MTL_data/Position_task_with_dots_synchronized_min.npz')
