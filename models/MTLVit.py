@@ -20,11 +20,9 @@ class MTLViT_pretrained(nn.Module):
 
         model_name = "google/vit-base-patch16-224"
         config = transformers.ViTConfig.from_pretrained(model_name)
-        config.update({
-            'num_channels': 256,
-            'image_size': (129, 14),
-            'patch_size': (8, 1)
-        })
+        config.update({'num_channels': 256})
+        config.update({'image_size': (129, 14)})
+        config.update({'patch_size': (8, 1)})
 
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
                                                                        ignore_mismatched_sizes=True)
@@ -35,7 +33,6 @@ class MTLViT_pretrained(nn.Module):
         # Position Prediction Branch
         self.position_predictor = nn.Sequential(
             nn.Linear(768, 1000, bias=True),
-            nn.ReLU(),
             nn.Dropout(p=0.1),
             nn.Linear(1000, 2, bias=True)
         )
