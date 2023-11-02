@@ -41,7 +41,8 @@ class MTLViT_pretrained(nn.Module):
         )
 
         # Reconstruction Branch
-        self.spatial_deconv = nn.ConvTranspose2d(768, 128, kernel_size=(8, 1), stride=(8, 1), padding=(0, 0), output_padding=(1, 0))
+        self.spatial_deconv = nn.ConvTranspose2d(768, 128, kernel_size=(8, 1), stride=(8, 1), padding=(0, 0),
+                                                 output_padding=(1, 0))
         self.temporal_deconv = nn.ConvTranspose2d(128, 1, kernel_size=(1, 36), stride=(1, 36), padding=(0, 0))
 
     def forward(self, x):
@@ -59,8 +60,7 @@ class MTLViT_pretrained(nn.Module):
         x_reconstructed = self.spatial_deconv(reshaped_features)
         x_reconstructed = self.temporal_deconv(x_reconstructed)
 
-        return positions, x_reconstructed[:, :, :, :500]
-
+        return positions, x_reconstructed[:, :, :, 2:-2]
 
 # # Instantiate the model
 # model = MTLViT_pretrained()
