@@ -172,8 +172,10 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
                 val_position_loss += position_loss.item()
                 val_reconstruction_loss += reconstruction_loss.item()
 
-            val_loss /= len(test_loader)
-            test_losses.append(val_loss)
+            val_loss /= len(val_loader)
+            val_position_loss /= len(val_loader)
+            val_reconstruction_loss /= len(val_loader)
+            val_losses.append(val_loss)
 
             # Log
             writer.add_scalar('Loss/test', val_loss, epoch)
