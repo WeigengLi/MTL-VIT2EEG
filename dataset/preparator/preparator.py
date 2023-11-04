@@ -98,12 +98,14 @@ class Preparator:
                         hdf5file = h5py.File(cur_dir + f, 'r')
                         EEG = hdf5file[list(hdf5file.keys())[1]]  # removal of a repeated h5py.File() call here
                         events = self._load_hdf5_events(EEG)
-                        data = np.array(EEG['data'], dtype='float')
+                        data = np.array(EEG['data'])
                     else:
+                        # This is the task
                         matfile = scipy.io.loadmat(cur_dir + f)
                         EEG = matfile[list(matfile.keys())[3]][0,0] #eventually at the end to remove the repetition in the load method
                         events = self._load_v5_events(EEG)
-                        data = np.array(EEG['data'], dtype='float').T
+                        data = np.array(EEG['data']).T
+                        #print('is not hdf5')
 
 
                     events = self._ignore_events(events)
@@ -119,8 +121,8 @@ class Preparator:
 
         # save the concatenated arrays
         print('Saving data...')
-        EEG = np.concatenate(all_EEG, axis=0, dtype='float')
-        labels = np.concatenate(all_labels, axis=0, dtype='float')
+        EEG = np.concatenate(all_EEG, axis=0)
+        labels = np.concatenate(all_labels, axis=0)
         print("Shapes of EEG are: ")
         print(EEG.shape)
         print("Shapes of labels are: ")

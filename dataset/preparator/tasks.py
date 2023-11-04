@@ -124,6 +124,7 @@ def position_task_data_preparation(feature_extraction, verbose=False):
     preparator.addFilter(name='Keep fixation that are long enough', f=lambda events: events['duration'] >= 500)
     preparator.addLabel(name='x_position', f=lambda events: events['avgpos_x'])
     preparator.addLabel(name='y_position', f=lambda events: events['avgpos_y'])
+    preparator.addLabel(name='type', f=lambda events: events['type'])
     preparator.addLabel(name='pupil_size', f=lambda events: events['avgpupilsize'])
     preparator.run()
 
