@@ -43,8 +43,9 @@ class MTLViT_pretrained(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
         x = self.batchnorm1(x)
-        positions=self.ViT_model.forward(x).logits
-        shared_features = self.ViT(x).last_hidden_state  # Extracting the shared features
+        output = self.ViT_model.forward(x,output_hidden_states=True)
+        positions=output.logits
+        shared_features = output.hidden_states[-1]  # Extracting the shared features
         # Position Prediction
 
         # Discard the [CLS] token and reshape
@@ -56,6 +57,18 @@ class MTLViT_pretrained(nn.Module):
 
         return positions, x_reconstructed[:, :, :, 2:-2]
 
-
+# # Instantiate the model
+# model = MTLViT_pretrained()
+#
+# # Create a dummy input tensor
+# batch_size = 1
+# input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
+#
+# # Forward pass
+# positions, x_reconstructed = model(input_tensor)
+#
+# # Print output shapes to verify
+# print("Positions Shape:", positions.shape)
+# print("Reconstructed Shape:", x_reconstructed.shape)
 
 model = MTLViT_pretrained()

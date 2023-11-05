@@ -28,6 +28,7 @@ class MTLViT_pretrained(nn.Module):
                                                                        ignore_mismatched_sizes=True)
         model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(256, 768, kernel_size=(8, 1), stride=(8, 1),
                                                                            padding=(0, 0), groups=256)
+
         self.ViT = model.vit  # Only take the ViT part without the classification head
 
         # Position Prediction Branch
@@ -46,7 +47,6 @@ class MTLViT_pretrained(nn.Module):
         x = self.conv1(x)
         x = self.batchnorm1(x)
         shared_features = self.ViT(x).last_hidden_state  # Extracting the shared features
-
         # Position Prediction
         positions = self.position_predictor(shared_features[:, 0])  # Using the [CLS] token representation
 
@@ -72,3 +72,5 @@ class MTLViT_pretrained(nn.Module):
 # # Print output shapes to verify
 # print("Positions Shape:", positions.shape)
 # print("Reconstructed Shape:", x_reconstructed.shape)
+
+model = MTLViT_pretrained()
