@@ -1,7 +1,3 @@
-from models.EEGViT_pretrained import EEGViT_pretrained
-from models.EEGViT import EEGViT_raw
-from models.ViTBase import ViTBase
-from models.ViTBase_pretrained import ViTBase_pretrained
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
@@ -34,7 +30,7 @@ def Cal_RMSE(loss):
 
 
 def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, output_dir='./logs',
-          reconstruction_weight=0.5, log_name='1'):
+          subtask_weight=0.5, log_name='1'):
     '''
         model: model to train
         optimizer: optimizer to update weights
@@ -81,32 +77,33 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
         model.train()
         epoch_train_loss = 0.0
         epoch_train_position_loss = 0.0
+        epoch_train_pupil_loss = 0.0
         epoch_train_reconstruction_loss = 0.0
-        recon_weight = reconstruction_weight*(1-(epoch/n_epoch))
-        for i, (inputs, targets, index) in tqdm(enumerate(train_loader)):
+        for i, (inputs, targets,pupil_size, index) in tqdm(enumerate(train_loader)):
             # Move the inputs and targets to the GPU (if available)
             inputs = inputs.to(device)
             targets = targets.to(device)
+            pupil_size = pupil_size.to(device)
 
             # Compute the outputs and loss for the current batch
             optimizer.zero_grad()
-            positions, x_reconstructed = model(inputs)
+            positions, predict_pupil_size = model(inputs,pupil_size)
 
             position_loss = criterion(positions.squeeze(), targets.squeeze())
-            reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
-            loss = position_loss + recon_weight * reconstruction_loss
+            pupil_size_loss = criterion(predict_pupil_size.squeeze(), pupil_size.squeeze())
+            loss = position_loss + pupil_size_loss * subtask_weight
             
             # Compute the gradients and update the parameters
             loss.backward()
             optimizer.step()
             epoch_train_loss += loss.item()
             epoch_train_position_loss += position_loss.item()
-            epoch_train_reconstruction_loss += reconstruction_loss.item()
+            epoch_train_reconstruction_loss += pupil_size_loss.item()
 
             # Print the loss and accuracy for the current batch
             if i % 100 == 0:
                 print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
-                      f" reconstruction loss: {reconstruction_loss.item()} RMSE(mm): {Cal_RMSE(position_loss.item())}")
+                      f" reconstruction loss: {pupil_size_loss.item()} RMSE(mm): {Cal_RMSE(position_loss.item())}")
 
         epoch_train_loss /= len(train_loader)
         epoch_train_position_loss /= len(train_loader)
@@ -125,21 +122,21 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
             val_loss = 0.0
             val_position_loss = 0.0
             val_reconstruction_loss = 0.0
-            for inputs, targets, index in val_loader:
-                # Move the inputs and targets to the GPU (if available)
+            for inputs, targets,pupil_size, index in val_loader:
+                            # Move the inputs and targets to the GPU (if available)
                 inputs = inputs.to(device)
                 targets = targets.to(device)
+                pupil_size = pupil_size.to(device)
 
                 # Compute the outputs and loss for the current batch
-                positions, x_reconstructed = model(inputs)
+                positions, predict_pupil_size = model(inputs,pupil_size)
 
-                # print(outputs)
                 position_loss = criterion(positions.squeeze(), targets.squeeze())
-                reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
-                loss = position_loss + reconstruction_weight * reconstruction_loss
+                pupil_size_loss = criterion(predict_pupil_size.squeeze(), pupil_size.squeeze())
+                loss = position_loss + pupil_size_loss * subtask_weight
                 val_loss += loss.item()
                 val_position_loss += position_loss.item()
-                val_reconstruction_loss += reconstruction_loss.item()
+                val_reconstruction_loss += pupil_size_loss.item()
 
             val_loss /= len(val_loader)
             val_position_loss /= len(val_loader)
@@ -158,20 +155,20 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
             val_loss = 0.0
             val_position_loss = 0.0
             val_reconstruction_loss = 0.0
-            for inputs, targets, index in test_loader:
-                # Move the inputs and targets to the GPU (if available)
+            for inputs, targets,pupil_size, index in test_loader:
                 inputs = inputs.to(device)
                 targets = targets.to(device)
+                pupil_size = pupil_size.to(device)
 
                 # Compute the outputs and loss for the current batch
-                positions, x_reconstructed = model(inputs)
+                positions, predict_pupil_size = model(inputs,pupil_size)
 
                 position_loss = criterion(positions.squeeze(), targets.squeeze())
-                reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
-                loss = position_loss + reconstruction_weight * reconstruction_loss
+                pupil_size_loss = criterion(predict_pupil_size.squeeze(), pupil_size.squeeze())
+                loss = position_loss + pupil_size_loss * subtask_weight
                 val_loss += loss.item()
                 val_position_loss += position_loss.item()
-                val_reconstruction_loss += reconstruction_loss.item()
+                val_reconstruction_loss += pupil_size_loss.item()
 
             val_loss /= len(val_loader)
             val_position_loss /= len(val_loader)

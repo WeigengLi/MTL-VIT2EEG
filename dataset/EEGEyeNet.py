@@ -16,7 +16,7 @@ class EEGEyeNetDataset(Dataset):
     def __getitem__(self, index):
         # Read a single sample of data from the data array
         X = torch.from_numpy(self.trainX[index]).float()
-        y = torch.from_numpy(self.trainY[index,1:3]).float()
+        y = torch.from_numpy(self.trainY[index,1:]).float()
         
         # Return the tensor data
         return (X,y,index)

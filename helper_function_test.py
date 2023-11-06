@@ -82,7 +82,7 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
         epoch_train_loss = 0.0
         epoch_train_position_loss = 0.0
         epoch_train_reconstruction_loss = 0.0
-        recon_weight = reconstruction_weight*(1-(epoch/n_epoch))
+        
         for i, (inputs, targets, index) in tqdm(enumerate(train_loader)):
             # Move the inputs and targets to the GPU (if available)
             inputs = inputs.to(device)
@@ -94,7 +94,7 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
 
             position_loss = criterion(positions.squeeze(), targets.squeeze())
             reconstruction_loss = criterion(x_reconstructed.squeeze(), inputs.squeeze())
-            loss = position_loss + recon_weight * reconstruction_loss
+            loss = position_loss + reconstruction_weight * reconstruction_loss
             
             # Compute the gradients and update the parameters
             loss.backward()
