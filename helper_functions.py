@@ -150,8 +150,8 @@ def train(model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, 
             test_losses.append(val_loss)
 
             # Log
-            writer.add_scalar('Loss/validation', loss.item(), epoch)
-            writer.add_scalar('RMSE/validation', Cal_RMSE(loss.item()), epoch)
+            writer.add_scalar('Loss/test', loss.item(), epoch)
+            writer.add_scalar('RMSE/test', Cal_RMSE(loss.item()), epoch)
 
             print(f"Epoch {epoch}, test Loss: {val_loss}, RMSE(mm): {Cal_RMSE(val_loss)}")
 
