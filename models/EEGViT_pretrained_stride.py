@@ -14,14 +14,14 @@ class EEGViT_pretrained(nn.Module):
             out_channels=256,
             kernel_size=(1, 72),
             stride=(1, 72),
-            padding=(0, 0),
+            padding=(0, 2),
             bias=False
         )
         self.batchnorm1 = nn.BatchNorm2d(256, False)
         model_name = "google/vit-base-patch16-224"
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 256})
-        config.update({'image_size': (129, 6)})
+        config.update({'image_size': (129, 7)})
         config.update({'patch_size': (129, 1)})
 
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
