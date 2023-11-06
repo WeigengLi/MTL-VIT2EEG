@@ -22,11 +22,11 @@ class MTLViT_pretrained(nn.Module):
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 256})
         config.update({'image_size': (129, 14)})
-        config.update({'patch_size': (16, 1)})
+        config.update({'patch_size': (129, 1)})
 
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
                                                                        ignore_mismatched_sizes=True)
-        model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(256, 1024 , kernel_size=(16, 1), stride=(16, 1),
+        model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(256, 1024 , kernel_size=(129, 1), stride=(129, 1),
                                                                            padding=(0, 0), groups=256)
     
         self.model = model.vit  # Only take the ViT part without the classification head
