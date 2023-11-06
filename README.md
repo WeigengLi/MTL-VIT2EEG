@@ -38,5 +38,5 @@ For other installation details and different cuda versions, visit [pytorch.org](
 ### Tensorboard
 
 ```bash
-tensorboard --logdir logs
+tensorboard --bind_all --logdir logs 
 ```
