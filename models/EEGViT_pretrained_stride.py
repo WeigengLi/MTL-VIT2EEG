@@ -12,8 +12,8 @@ class EEGViT_pretrained(nn.Module):
         self.conv1 = nn.Conv2d(
             in_channels=1,
             out_channels=256,
-            kernel_size=(1, 108),
-            stride=(1, 108),
+            kernel_size=(1, 18),
+            stride=(1, 18),
             padding=(0, 2),
             bias=False
         )
@@ -21,7 +21,7 @@ class EEGViT_pretrained(nn.Module):
         model_name = "google/vit-base-patch16-224"
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 256})
-        config.update({'image_size': (129, 4)})
+        config.update({'image_size': (129, 28)})
         config.update({'patch_size': (129, 1)})
 
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
