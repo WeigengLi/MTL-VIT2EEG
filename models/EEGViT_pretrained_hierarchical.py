@@ -9,14 +9,14 @@ import transformers
 class EEGViT_pretrained_hierachical(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 256, kernel_size=(1, 36), stride=(1, 36), padding=(0, 2), bias=False)
-        self.conv2 = nn.Conv2d(1, 256, kernel_size=(1, 48), stride=(1, 36), padding=(0, 8), bias=False)
-        self.conv3 = nn.Conv2d(1, 256, kernel_size=(1, 60), stride=(1, 36), padding=(0, 14), bias=False)
+        self.conv1 = nn.Conv2d(1, 256, kernel_size=(1, 24), stride=(1, 24), padding=(0, 2), bias=False)
+        self.conv2 = nn.Conv2d(1, 256, kernel_size=(1, 36), stride=(1, 24), padding=(0, 8), bias=False)
+        self.conv3 = nn.Conv2d(1, 256, kernel_size=(1, 48), stride=(1, 24), padding=(0, 14), bias=False)
         self.batchnorm1 = nn.BatchNorm2d(768, False)
         model_name = "google/vit-base-patch16-224"
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 768})
-        config.update({'image_size': (129, 14)})
+        config.update({'image_size': (129, 21)})
         config.update({'patch_size': (129, 1)})
 
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
@@ -40,15 +40,15 @@ class EEGViT_pretrained_hierachical(nn.Module):
         return x
 
 
-# # Instantiate the model
-# model = EEGViT_pretrained_hierachical()
-#
-# # Create a dummy input tensor
-# batch_size = 1
-# input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
-#
-# # Forward pass
-# positions = model(input_tensor)
-#
-# # Print output shapes to verify
-# print("Positions Shape:", positions.shape)
+# Instantiate the model
+model = EEGViT_pretrained_hierachical()
+
+# Create a dummy input tensor
+batch_size = 1
+input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
+
+# Forward pass
+positions = model(input_tensor)
+
+# Print output shapes to verify
+print("Positions Shape:", positions.shape)
