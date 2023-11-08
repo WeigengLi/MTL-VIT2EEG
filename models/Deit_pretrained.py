@@ -42,15 +42,16 @@ class DeiT_pretrained(nn.Module):
         return x
 
 
-# Instantiate the model
-model = DeiT_pretrained()
+if __name__ == '__main__':
+    # Instantiate the model
+    model = DeiT_pretrained()
 
-# Create a dummy input tensor
-batch_size = 1
-input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
+    # Create a dummy input tensor
+    batch_size = 1
+    input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
 
-# Forward pass
-positions = model(input_tensor)
+    # Forward pass
+    positions = model(input_tensor)
 
-# Print output shapes to verify
-print("Positions Shape:", positions.shape)
+    # Print output shapes to verify
+    print("Positions Shape:", positions.shape)
