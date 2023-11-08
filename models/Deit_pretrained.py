@@ -32,12 +32,12 @@ class DeiT_pretrained(nn.Module):
         model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 1000, bias=True),
                                                torch.nn.Dropout(p=0.1),
                                                torch.nn.Linear(1000, 2, bias=True))
-        self.ViT = model
+        self.DeiT = model
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.batchnorm1(x)
-        x = self.ViT.forward(x).logits
+        x = self.DeiT(x).logits
 
         return x
 
