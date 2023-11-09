@@ -99,6 +99,8 @@ def direction_with_processing_speed_dataset(feature_extraction=False, verbose=Fa
     preparator.addLabel(name='angle', f=lambda events: np.arctan2(events['end_y'].shift(-1) - events['start_y'].shift(-1), events['end_x'].shift(-1) - events['start_x'].shift(-1)))
     preparator.run()
 
+
+
 def position_task_data_preparation(feature_extraction, verbose=False):
     # We use the 'dots' dataset for position task
     fixation = config['fixation_trigger']
@@ -124,8 +126,8 @@ def position_task_data_preparation(feature_extraction, verbose=False):
     preparator.addFilter(name='Keep fixation that are long enough', f=lambda events: events['duration'] >= 500)
     preparator.addLabel(name='x_position', f=lambda events: events['avgpos_x'])
     preparator.addLabel(name='y_position', f=lambda events: events['avgpos_y'])
-    preparator.addLabel(name='type', f=lambda events: events['type'])
-    preparator.addLabel(name='pupil_size', f=lambda events: events['avgpupilsize'])
+
+    preparator.addLabel(name='pupil_size', f=lambda events:events['avgpupilsize'],std_data=True)
     preparator.run()
 
 def segmentation_task_data_preparation(feature_extraction=False, verbose=False):

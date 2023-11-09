@@ -12,7 +12,7 @@ tables/*
 *.pth
 # ignore dataset
 dataset/*
-
+__pycache__/
 # Excpet code in this folder 
 !dataset/EEGEyeNet.py
 !dataset/preparator

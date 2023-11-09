@@ -60,8 +60,8 @@ class Preparator:
         self.filters.append((name, f))
         print('Preparator is instructed to use filter: ' + name)
 
-    def addLabel(self, name, f):
-        self.labels.append((name, f))
+    def addLabel(self, name, f, std_data=False, one_hot = False):
+        self.labels.append((name, f, std_data, one_hot))
         print('Preparator is instructed to use label: ' + name)
 
     def ignoreEvent(self, name, f):
@@ -278,8 +278,26 @@ class Preparator:
         labels = np.full((nr_trials, 1), subj_counter, dtype='float')
         if self.verbose: print(labels)
 
-        for name, f in self.labels:
+        for name, f, std_data, one_hot in self.labels:
             if self.verbose: print("Appending the next label: " + name)
-            labels = np.concatenate((labels, np.asarray(f(events).loc[select], dtype='float').reshape(-1,1)), axis=1)
+            if std_data:
+                selected_data = np.asarray(f(events).loc[select], dtype='float')
+                # 计算均值和标准差
+                mean = np.mean(selected_data)
+                std = np.std(selected_data)
+                # 标准化数据
+                normalized_data = (selected_data - mean) / std
+
+                # 将标准化后的数据与 labels 连接
+                labels = np.concatenate((labels, normalized_data.reshape(-1, 1)), axis=1)
+            elif one_hot:
+                for patten in self.extract_pattern:
+                    for event_type in  patten:
+                        events[event_type] = (f(events) == event_type).astype(int)
+                        a = sum(events[event_type].loc[select])
+                        labels = np.concatenate((labels, np.asarray(events[event_type].loc[select], dtype='float').reshape(-1,1)), axis=1)
+            else:
+                a = 'L_saccade' in events['type'].loc[select]
+                labels = np.concatenate((labels, np.asarray(f(events).loc[select], dtype='float').reshape(-1,1)), axis=1)
             if self.verbose: print(labels)
         return labels
