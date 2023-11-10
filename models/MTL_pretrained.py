@@ -48,10 +48,11 @@ class ViT_reconstruct(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
         x = self.batchnorm1(x)
-        positions = self.ViT.forward(x).logits
+        output = self.ViT.forward(x,output_hidden_states=True)
+        positions = output.logits
 
         # Extracting the shared features
-        shared_features = self.ViT.vit(x).last_hidden_state
+        shared_features = output.hidden_states[-1]
 
         # Discard the [CLS] token and reshape
         reshaped_features = shared_features[:, 1:].view(x.size(0), 768, 16, 14)
