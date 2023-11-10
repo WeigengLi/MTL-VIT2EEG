@@ -6,25 +6,32 @@ This repository is the official implementation of Enhancing Eye-Tracking Perform
 ## Overview
 Electroencephalography (EEG) is a critical technology in the domain of human-computer interaction and cognitive neuroscience.   
 
-MLT-ViT is a Multi Task Learning approch to Decode EEG data using Vision Transformer. Our model's main objective is to improve the Vision Transformer's performance on EEG eye-tracking tasks.  
+MLT-ViT is a Multi-Task Learning approch to Decode EEG data using Vision Transformer. Our model's main objective is to improve the Vision Transformer's performance on EEG eye-tracking tasks.  
 
-This repository consists of model and our paper proposal.  
+This repository consists of the model and our paper proposal.  
 
-## Where to Find?
-Our purposed Models and benchmark models are in `models` folder  
+## Where to Find? 
+`dataset`: Code to generate and load the dataset. Data files should also be placed in this folder
 
-We use jupyter notebook to store our experiment results. For reproduction, please run the `notebooks`
+`log`: Training logs e.g. loss. We use tensorboard to automatically record training and generate log files.
 
-We use tensorboard to keep our traning on record, the traning record is in the `log` folder
+`models`: Our proposed models, benchmark models, and code to evaluate models.
+
+`timeMachine`: Early version of models, codes, notebooks, Tasks that might be useful in the future.  
+
+`run.py` Code to reproduce our experiments.  
 
 ## Dataset download
-TODO: Pupil_size Dataset
-
-Download data for EEGEyeNet absolute position task
+**Data for EEG Single Task and Multi-Task with reconstruction subtask can be acquired by this code**  
 ```bash
 wget -O "./dataset/Position_task_with_dots_synchronised_min.npz" "https://osf.io/download/ge87t/"
 ```
 For more details about EEGEyeNet dataset, please refer to ["EEGEyeNet: a Simultaneous Electroencephalography and Eye-tracking Dataset and Benchmark for Eye Movement Prediction"](https://arxiv.org/abs/2111.05100) and [OSF repository](https://osf.io/ktv7m/)
+
+**Data for Multi-Task with pupil size prediction as subtask can be acquired by:**  
+1. First, Download "dots/synchronized_min" folder from [EEGEyeNet dataset OSF repository](https://osf.io/ktv7m/)  
+2. Unzip it in "./dataset/synchronized_min"  
+3. Run dataset "./preparator/tasks.py"
 
 ## Installation
 
@@ -42,13 +49,14 @@ For other installation details and different cuda versions, visit [pytorch.org](
 
 ## Training & Evaluation
 
-To train and evaluate the model(s) in the paper, run this command:
+To train and evaluate different the models in the paper, change configurations in `run.py`, and run this command:
 
 ```train
 python run.py
 ```
 
 ### Tensorboard
+After the evaluation is complete, use this command to open tensorboard UI
 ```bash
 tensorboard --bind_all --logdir logs 
 ```
@@ -56,7 +64,7 @@ tensorboard --bind_all --logdir logs
 
 ## Results
 
-Our model achieves the following performance on :
+Our model achieves the following performance:
 
 | Model name         | Absolute Position <br> RMSE (mm) | 
 | ------------------ |--------------------------------- |
@@ -84,7 +92,7 @@ We reused most codes from
 }
 ```
 
-Our main contributions are in these files under models folder:
+Our main contributions are in these files under the models folder:
 ```
 MTL_pretrained.py
 MTL_raw.py
