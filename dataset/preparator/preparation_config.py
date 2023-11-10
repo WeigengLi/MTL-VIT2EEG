@@ -30,7 +30,7 @@ preparation_config['feature_extraction'] = False
 preparation_config['including_bandpass_data'] = False  # or True (for later)
 
 #The directory of output file and the name
-preparation_config['SAVE_PATH'] = os.path.join(os.path.dirname(__file__), '..', 'MTL_data_3/')
+preparation_config['SAVE_PATH'] = os.path.join(os.path.dirname(__file__), '..', 'MTL_pupil_size_std/')
 
 preparation_config['output_name'] = preparation_config['task'] + '_with_' + preparation_config['dataset']
 preparation_config['output_name'] = preparation_config['output_name'] + '_' + preparation_config['preprocessing_path']
