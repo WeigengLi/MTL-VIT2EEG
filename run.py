@@ -7,8 +7,8 @@ import numpy as np
 import argparse
 
 from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
-from models.STL import EEGViT_pretrained
 # TODO: ADD COMMIT about possible models and instructions
+from models.STL import EEGViT_pretrained
 from models.MTL_pretrained import ViT_reconstruct
 from models.MTL_pretrained import ViT_pupil_Cascade
 from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
@@ -39,8 +39,8 @@ TASKS_TRAINER = {
 # endregion
 
 # region Config
-DEFAULT_TASK = MTL_RE_STR
-DEFAULT_MODEL = ViT_reconstruct
+DEFAULT_TASK = STL_STR
+DEFAULT_MODEL = EEGViT_pretrained
 NEW_DATA_PATH = False
 # endregion
 
@@ -50,7 +50,7 @@ def main():
     model = DEFAULT_MODEL()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-    mt = STL_Trainer(model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, Trainer_name='SingerTaskTest')
+    mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, Trainer_name='SingerTaskTest')
     mt.run()
 
 if __name__ == '__main__':
