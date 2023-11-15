@@ -14,7 +14,7 @@ tables/*
 dataset/*
 __pycache__/
 # Excpet code in this folder 
-!dataset/EEGEyeNet.py
+!dataset/Datasets.py
 !dataset/preparator
 logs/*
 !.gitkeep
