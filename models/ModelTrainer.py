@@ -58,8 +58,7 @@ class ModelTrainer(ABC):
             log_dir=f'{LOG_DIR}/{formatted_date}/{self.Trainer_name}')
         self.device = device
 
-    def write_logs(self, stage, losses, epoch=False):
-        losses = dict()
+    def write_logs(self, stage, losses, epoch):
         for key, value in losses.items():
             self.writer.add_scalar(f'{key}/{stage}', value, epoch)
 
@@ -72,18 +71,18 @@ class ModelTrainer(ABC):
             # training stage
             model.train()
             loss = self.model_evaluate(TRAIN_STAGE, self.train_loader, epoch)
-            self.write_logs(TRAIN_STAGE, loss)
+            self.write_logs(TRAIN_STAGE, loss, epoch)
 
             # Evaluate the model on the validation set
             model.eval()
             with torch.no_grad():
                 # Validate set
                 loss = self.model_evaluate(VAL_STAGE, self.val_loader, epoch)
-                self.write_logs(VAL_STAGE, loss)
+                self.write_logs(VAL_STAGE, loss, epoch)
 
                 # Testset
                 loss = self.model_evaluate(TEST_STAGE, self.test_loader, epoch)
-                self.write_logs(TEST_STAGE, loss)
+                self.write_logs(TEST_STAGE, loss, epoch)
 
             if self.scheduler is not None:
                 self.scheduler.step()
