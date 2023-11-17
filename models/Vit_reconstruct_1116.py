@@ -61,8 +61,8 @@ class Decoder(nn.Module):
         return out
 
 
-class ViT_reconstruct(nn.Module):
-    def __init__(self, reconstruct_kernel_size=(3, 3)):
+class ViT_reconstruct_modified(nn.Module):
+    def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(
             in_channels=1,
@@ -90,48 +90,31 @@ class ViT_reconstruct(nn.Module):
 
         # Decoder
         self.dec_block1 = nn.Sequential(
-            nn.ConvTranspose2d(768, 256, reconstruct_kernel_size),
+            nn.ConvTranspose2d(768, 256, (1, 36)),
             nn.InstanceNorm2d(256),
             nn.ReLU(True)
         )
 
         self.dec_block2 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, reconstruct_kernel_size),
+            nn.ConvTranspose2d(256, 128, (8, 1)),
             nn.InstanceNorm2d(128),
             nn.ReLU(True)
         )
 
         self.dec_block3 = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, reconstruct_kernel_size),
+            nn.ConvTranspose2d(128, 64, (1, 36), stride=2, padding=1),
             nn.InstanceNorm2d(64),
             nn.ReLU(True)
         )
 
         self.dec_block4 = nn.Sequential(
-            nn.ConvTranspose2d(64, 32, reconstruct_kernel_size, stride=2, padding=1),
-            nn.InstanceNorm2d(32),
-            nn.ReLU(True)
-        )
-
-        self.dec_block5 = nn.Sequential(
-            nn.ConvTranspose2d(32, 16, reconstruct_kernel_size, stride=2, padding=1),
-            nn.InstanceNorm2d(16),
-            nn.ReLU(True)
-        )
-
-        self.dec_block6 = nn.Sequential(
-            nn.ConvTranspose2d(16, 1, reconstruct_kernel_size, stride=2, padding=1),
-            nn.InstanceNorm2d(3),
+            nn.ConvTranspose2d(64, 1, (8, 1), stride=2, padding=1),
+            nn.InstanceNorm2d(1),
             nn.ReLU(True)
         )
 
         self.up = nn.UpsamplingBilinear2d((129, 500))  # fixed output size
         self.tanh = nn.Tanh()
-
-        # Reconstruction Branch
-        self.spatial_deconv = nn.ConvTranspose2d(768, 256, kernel_size=(8, 1), stride=(8, 1), padding=(0, 0),
-                                                 output_padding=(1, 0))
-        self.temporal_deconv = nn.ConvTranspose2d(256, 1, kernel_size=(1, 36), stride=(1, 36), padding=(0, 0))
 
     def forward(self, x):
         x = self.conv1(x)
@@ -151,8 +134,6 @@ class ViT_reconstruct(nn.Module):
         x_reconstructed = self.dec_block2(x_reconstructed)
         x_reconstructed = self.dec_block3(x_reconstructed)
         x_reconstructed = self.dec_block4(x_reconstructed)
-        x_reconstructed = self.dec_block5(x_reconstructed)
-        x_reconstructed = self.dec_block6(x_reconstructed)
         x_reconstructed = self.up(x_reconstructed)
         x_reconstructed = self.tanh(x_reconstructed)
 
@@ -161,7 +142,7 @@ class ViT_reconstruct(nn.Module):
 
 if __name__ == '__main__':
     # Instantiate the model
-    model = ViT_reconstruct((3, 3))
+    model = ViT_reconstruct_modified()
 
     # Create a dummy input tensor
     batch_size = 1
