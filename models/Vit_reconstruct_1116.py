@@ -2,63 +2,19 @@ import torch
 import transformers
 from torch import nn
 
+'''
+Inspired by:
 
-class Decoder(nn.Module):
-    def __init__(self, args):
-        super(Decoder, self).__init__()
-        self.args = args
-        self.dec_block1 = nn.Sequential(
-            nn.ConvTranspose2d(768, 256, (3, 3)),
-            nn.InstanceNorm2d(256),
-            nn.ReLU(True)
-        )
-
-        self.dec_block2 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, (3, 3)),
-            nn.InstanceNorm2d(128),
-            nn.ReLU(True)
-        )
-
-        self.dec_block3 = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, (3, 3)),
-            nn.InstanceNorm2d(64),
-            nn.ReLU(True)
-        )
-
-        self.dec_block4 = nn.Sequential(
-            nn.ConvTranspose2d(64, 32, (3, 3), stride=2, padding=1),
-            nn.InstanceNorm2d(32),
-            nn.ReLU(True)
-        )
-
-        self.dec_block5 = nn.Sequential(
-            nn.ConvTranspose2d(32, 16, (3, 3), stride=2, padding=1),
-            nn.InstanceNorm2d(16),
-            nn.ReLU(True)
-        )
-
-        self.dec_block6 = nn.Sequential(
-            nn.ConvTranspose2d(16, 3, (3, 3), stride=2, padding=1),
-            nn.InstanceNorm2d(3),
-            nn.ReLU(True)
-        )
-
-        self.up = nn.UpsamplingBilinear2d((args.image_size, args.image_size))  # fixed output size
-        self.tanh = nn.Tanh()
-
-    def forward(self, x):
-        out = x[:, 1:, :]
-        out = out.transpose(1, 2)
-        out = out.reshape(x.shape[0], -1, 16, 14)
-        out = self.dec_block1(out)
-        out = self.dec_block2(out)
-        out = self.dec_block3(out)
-        out = self.dec_block4(out)
-        out = self.dec_block5(out)
-        out = self.dec_block6(out)
-        out = self.up(out)
-        out = self.tanh(out)
-        return out
+@article{lee2022anovit,
+  title={AnoViT: Unsupervised anomaly detection and localization with vision transformer-based encoder-decoder},
+  author={Lee, Yunseung and Kang, Pilsung},
+  journal={IEEE Access},
+  volume={10},
+  pages={46717--46724},
+  year={2022},
+  publisher={IEEE}
+}
+'''
 
 
 class ViT_reconstruct_modified(nn.Module):
@@ -124,9 +80,6 @@ class ViT_reconstruct_modified(nn.Module):
 
         # Extracting the shared features
         shared_features = output.hidden_states[-1]
-
-        # # Discard the [CLS] token and reshape
-        # reshaped_features = shared_features[:, 1:].view(x.size(0), 768, 16, 14)
 
         # Decoder
         reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 16, 14)
