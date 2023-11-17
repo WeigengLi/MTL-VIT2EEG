@@ -17,11 +17,11 @@ Inspired by:
 
 Changes: 
 patch_embeddings: 8 * 1 -> 129 * 1
-reconstruct: 8 * 1 -> 16 * 1
+reconstruct: decoder modify
 '''
 
 
-class ViT_reconstruct_v3(nn.Module):
+class ViT_reconstruct_v4(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(
@@ -57,19 +57,19 @@ class ViT_reconstruct_v3(nn.Module):
         )
 
         self.dec_block2 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, (16, 1)),
+            nn.ConvTranspose2d(256, 128, (1, 36)),
             nn.InstanceNorm2d(128),
             nn.ReLU(True)
         )
 
         self.dec_block3 = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, (1, 36), stride=2, padding=1),
+            nn.ConvTranspose2d(128, 64, (1, 36), stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(64),
             nn.ReLU(True)
         )
 
         self.dec_block4 = nn.Sequential(
-            nn.ConvTranspose2d(64, 1, (16, 1), stride=2, padding=1),
+            nn.ConvTranspose2d(64, 32, (1, 36), stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(1),
             nn.ReLU(True)
         )
@@ -100,7 +100,7 @@ class ViT_reconstruct_v3(nn.Module):
 
 if __name__ == '__main__':
     # Instantiate the model
-    model = ViT_reconstruct_v3()
+    model = ViT_reconstruct_v4()
 
     # Create a dummy input tensor
     batch_size = 1
