@@ -266,12 +266,15 @@ class ADDA_Trainer(ModelTrainer):
     def initialization(self):
         super().initialization()
         self.discriminator.to(self.device)
+        self.CE_criterion = nn.CrossEntropyLoss()
+        self.CE_criterion.to(self.device)
 
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
-        MSE_criterion = nn.MSELoss()
-        MSE_criterion = MSE_criterion.to(self.device)
+        
+        MSE_criterion = self.criterion
+        CE_criterion = self.CE_criterion
         epoch_loss = 0.0
         epoch_position_loss = 0.0
         if stage == TRAIN_STAGE:
@@ -289,7 +292,7 @@ class ADDA_Trainer(ModelTrainer):
                 domain_y = domain_y.to(device)
                 label_y = source_labels.to(device)
 
-                positions, shared_features = self.model(x).view(x.shape[0], -1)
+                positions, shared_features = self.model(x)
                 domain_preds = self.discriminator(shared_features).squeeze()
                 label_preds = positions[:source_x.shape[0]]
 
