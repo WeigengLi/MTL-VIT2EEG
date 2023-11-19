@@ -15,33 +15,32 @@ Inspired by:
   publisher={IEEE}
 }
 
-changes:
-encoder: using en_block1 and en_block2
+Changes:
+encoder: add enc_block
 '''
 
 
-class ViT_reconstruct_v5(nn.Module):
+class ViT_reconstruct_modified(nn.Module):
     def __init__(self):
         super().__init__()
-
         # Encoder
-        self.en_block1 = nn.Sequential(
-            nn.Conv2d(1, 128, (1, 36), stride=(1, 3)),
-            nn.InstanceNorm2d(128),
-            nn.ReLU(True)
-        )
-
-        self.en_block2 = nn.Sequential(
-            nn.Conv2d(128, 256, (1, 36), stride=(1, 3)),
+        self.enc_block1 = nn.Sequential(
+            nn.Conv2d(1, 128, (1, 36), stride=(1, 5)),
             nn.InstanceNorm2d(256),
             nn.ReLU(True)
         )
 
-        # Pre-trained Vision Transformer
+        self.enc_block2 = nn.Sequential(
+            nn.Conv2d(128, 256, (1, 36), stride=(1, 5), padding=(0, 1)),
+            nn.InstanceNorm2d(256),
+            nn.ReLU(True)
+        )
+
+        # ViT
         model_name = "google/vit-base-patch16-224"
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 256})
-        config.update({'image_size': (129, 40)})
+        config.update({'image_size': (129, 12)})
         config.update({'patch_size': (8, 1)})
 
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
@@ -55,25 +54,25 @@ class ViT_reconstruct_v5(nn.Module):
 
         # Decoder
         self.dec_block1 = nn.Sequential(
-            nn.ConvTranspose2d(768, 256, (1, 36)),
+            nn.ConvTranspose2d(768, 256, (8, 1)),
             nn.InstanceNorm2d(256),
             nn.ReLU(True)
         )
 
         self.dec_block2 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, (8, 1)),
+            nn.ConvTranspose2d(256, 128, (1, 36)),
             nn.InstanceNorm2d(128),
             nn.ReLU(True)
         )
 
         self.dec_block3 = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, (1, 36), stride=2, padding=1),
+            nn.ConvTranspose2d(128, 64, (8, 1), stride=2, padding=1),
             nn.InstanceNorm2d(64),
             nn.ReLU(True)
         )
 
         self.dec_block4 = nn.Sequential(
-            nn.ConvTranspose2d(64, 1, (8, 1), stride=2, padding=1),
+            nn.ConvTranspose2d(64, 1, (1, 36), stride=2, padding=1),
             nn.InstanceNorm2d(1),
             nn.ReLU(True)
         )
@@ -82,8 +81,8 @@ class ViT_reconstruct_v5(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, x):
-        x = self.en_block1(x)
-        x = self.en_block2(x)
+        x = self.enc_block1(x)
+        x = self.enc_block2(x)
         output = self.ViT.forward(x, output_hidden_states=True)
         positions = output.logits
 
@@ -91,7 +90,7 @@ class ViT_reconstruct_v5(nn.Module):
         shared_features = output.hidden_states[-1]
 
         # Decoder
-        reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 16, 40)
+        reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 16, 12)
         x_reconstructed = self.dec_block1(reshaped_features)
         x_reconstructed = self.dec_block2(x_reconstructed)
         x_reconstructed = self.dec_block3(x_reconstructed)
@@ -104,7 +103,7 @@ class ViT_reconstruct_v5(nn.Module):
 
 if __name__ == '__main__':
     # Instantiate the model
-    model = ViT_reconstruct_v5()
+    model = ViT_reconstruct_modified()
 
     # Create a dummy input tensor
     batch_size = 1
