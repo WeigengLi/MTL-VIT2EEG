@@ -309,7 +309,7 @@ class MTL_ADDA_Trainer(ModelTrainer):
                 domain_loss = BCE_criterion(domain_preds, domain_y)
                 position_loss = MSE_criterion(label_preds, label_y)
                 loss = domain_loss*self.weight + position_loss
-
+                #TODO: Domian loss计算很慢
                 loss.backward()
                 optimizer.step()
                 epoch_loss += loss.item()
