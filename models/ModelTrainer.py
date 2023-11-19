@@ -8,6 +8,7 @@ import numpy as np
 import math
 from abc import ABC, abstractmethod
 
+
 LOG_DIR = './logs'
 TRAIN_STAGE = 'train'
 TEST_STAGE = 'test'
@@ -57,6 +58,8 @@ class ModelTrainer(ABC):
         self.writer = SummaryWriter(
             log_dir=f'{LOG_DIR}/{formatted_date}/{self.Trainer_name}')
         self.device = device
+        self.criterion = nn.MSELoss()
+        self.criterion.to(self.device)
 
     def write_logs(self, stage, losses, epoch):
         for key, value in losses.items():
@@ -95,6 +98,7 @@ class ModelTrainer(ABC):
         '''
         pass
 
+
 class MTL_RE_Trainer(ModelTrainer):
     def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer', weight=0) -> None:
         super().__init__(model, Dataset, optimizer,
@@ -104,8 +108,7 @@ class MTL_RE_Trainer(ModelTrainer):
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
-        criterion = nn.MSELoss()
-        criterion = criterion.to(self.device)
+        criterion = self.criterion
         epoch_loss = 0.0
         epoch_position_loss = 0.0
         epoch_reconstruction_loss = 0.0
@@ -114,7 +117,7 @@ class MTL_RE_Trainer(ModelTrainer):
         else:
             enumerator = enumerate(data_loader)
         for i, (inputs, targets, *index) in enumerator:
-           
+
             # Move the inputs and targets to the GPU (if available)
             inputs = inputs.to(device)
             targets = targets.to(device)
@@ -150,6 +153,7 @@ class MTL_RE_Trainer(ModelTrainer):
                 f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
         return loss
 
+
 class MTL_PU_Trainer(ModelTrainer):
     def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer', weight=0) -> None:
         super().__init__(model, Dataset, optimizer,
@@ -159,8 +163,7 @@ class MTL_PU_Trainer(ModelTrainer):
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
-        criterion = nn.MSELoss()
-        criterion = criterion.to(self.device)
+        criterion = self.criterion
         epoch_loss = 0.0
         epoch_position_loss = 0.0
         epoch_pupil_loss = 0.0
@@ -190,7 +193,7 @@ class MTL_PU_Trainer(ModelTrainer):
             epoch_loss += loss.item()
             epoch_position_loss += position_loss.item()
             epoch_pupil_loss += pupil_size_loss.item()
-            
+
             # Print the loss and accuracy for the current batch
             if stage == TRAIN_STAGE and i % 100 == 0:
                 print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
@@ -206,20 +209,22 @@ class MTL_PU_Trainer(ModelTrainer):
                 f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
         return loss
 
+
 class STL_Trainer(ModelTrainer):
     def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer') -> None:
-        super().__init__(model, Dataset, optimizer, scheduler, batch_size, n_epoch, Trainer_name)
-        
+        super().__init__(model, Dataset, optimizer,
+                         scheduler, batch_size, n_epoch, Trainer_name)
+
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
-        criterion = nn.MSELoss()
-        criterion = criterion.to(self.device)
+
         epoch_loss = 0.0
         epoch_position_loss = 0.0
-        
-        enumerator = tqdm(enumerate(data_loader)) if stage == TRAIN_STAGE else enumerate(data_loader)
-       
+
+        enumerator = tqdm(enumerate(data_loader)
+                          ) if stage == TRAIN_STAGE else enumerate(data_loader)
+        criterion = self.criterion
         for i, (inputs, targets, *index) in enumerator:
             # Move the inputs and targets to the GPU (if available)
             inputs = inputs.to(device)
@@ -237,7 +242,6 @@ class STL_Trainer(ModelTrainer):
             epoch_loss += position_loss.item()
             epoch_position_loss += position_loss.item()
 
-            
             # Print the loss and accuracy for the current batch
             if stage == TRAIN_STAGE and i % 100 == 0:
                 print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
@@ -251,6 +255,99 @@ class STL_Trainer(ModelTrainer):
             print(
                 f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
         return loss
+
+
+class ADDA_Trainer(ModelTrainer):
+    def __init__(self, model, discriminator, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer') -> None:
+        super().__init__(model, Dataset, optimizer,
+                         scheduler, batch_size, n_epoch, Trainer_name)
+        self.discriminator = discriminator
+
+    def initialization(self):
+        super().initialization()
+        self.discriminator.to(self.device)
+
+    def model_evaluate(self, stage, data_loader, epoch):
+        device = self.device
+        optimizer = self.optimizer
+        MSE_criterion = nn.MSELoss()
+        MSE_criterion = MSE_criterion.to(self.device)
+        epoch_loss = 0.0
+        epoch_position_loss = 0.0
+        if stage == TRAIN_STAGE:
+            source_loader = self.train_loader
+            target_loader = self.test_loader
+            batches = zip(source_loader, target_loader)
+            n_batches = min(len(source_loader), len(target_loader))
+            total_domain_loss = total_label_accuracy = 0
+            for (source_x, source_labels), (target_x, _) in tqdm(batches, leave=False, total=n_batches):
+                optimizer.zero_grad()
+                x = torch.cat([source_x, target_x])
+                x = x.to(device)
+                domain_y = torch.cat([torch.ones(source_x.shape[0]),
+                                    torch.zeros(target_x.shape[0])])
+                domain_y = domain_y.to(device)
+                label_y = source_labels.to(device)
+
+                positions, shared_features = self.model(x).view(x.shape[0], -1)
+                domain_preds = self.discriminator(shared_features).squeeze()
+                label_preds = positions[:source_x.shape[0]]
+
+                domain_loss = F.binary_cross_entropy_with_logits(domain_preds, domain_y)
+                posotion = MSE_criterion(label_preds, label_y)
+                loss = domain_loss + label_loss
+
+                loss.backward()
+                optimizer.step()
+
+                total_domain_loss += domain_loss.item()
+                total_label_accuracy += (label_preds.max(1)
+                                        [1] == label_y).float().mean().item()
+
+            mean_loss = total_domain_loss / n_batches
+            mean_accuracy = total_label_accuracy / n_batches
+            tqdm.write(f'EPOCH {epoch:03d}: domain_loss={mean_loss:.4f}, '
+                    f'source_accuracy={mean_accuracy:.4f}')
+
+            torch.save(model.state_dict(), 'trained_models/revgrad.pt')
+            
+        # Test and Val stage is the same as Single Task Learning
+        else:
+            enumerator = tqdm(enumerate(data_loader)
+                          ) if stage == TRAIN_STAGE else enumerate(data_loader)
+
+            for i, (inputs, targets, *index) in enumerator:
+                # Move the inputs and targets to the GPU (if available)
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+                # Compute the outputs and loss for the current batch
+                optimizer.zero_grad()
+                outputs = self.model(inputs)
+
+                # loss = criterion(outputs.squeeze(), targets.squeeze())
+                position_loss = criterion(outputs.squeeze(), targets.squeeze())
+                # Compute the gradients and update the parameters
+                if stage == TRAIN_STAGE:
+                    position_loss.backward()
+                optimizer.step()
+                epoch_loss += position_loss.item()
+                epoch_position_loss += position_loss.item()
+
+                # Print the loss and accuracy for the current batch
+                if stage == TRAIN_STAGE and i % 100 == 0:
+                    print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
+                        f" RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
+
+            loss = {'overall_loss': epoch_loss / len(data_loader),
+                    'position_loss': epoch_position_loss / len(data_loader),
+                    'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
+                    }
+            if stage in [TEST_STAGE, VAL_STAGE]:
+                print(
+                    f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
+            return loss
+                
+
 
 def split(ids, train, val, test):
     # proportions of train, val, test
@@ -269,9 +366,10 @@ def split(ids, train, val, test):
 
     return train, val, test
 
+
 def Cal_RMSE(loss):
     return math.sqrt(loss) / 2
 
+
 def default_round(a):
     return round(a, 2)
-
