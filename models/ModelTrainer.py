@@ -273,7 +273,7 @@ class MTL_ADDA_Trainer(ModelTrainer):
         self.optimizer =  torch.optim.Adam(list(self.discriminator.parameters()) + list(self.model.parameters()), lr=1e-4)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=6, gamma=0.1)
         self.discriminator.to(self.device)
-        self.BCE_criterion = nn.BCELoss()
+        self.BCE_criterion = nn.BCEWithLogitsLoss()
         self.BCE_criterion.to(self.device)
         # 计算复制 target_loader 的倍数，以使其长度不小于 source_loader
 
