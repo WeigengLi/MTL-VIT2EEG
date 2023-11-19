@@ -107,12 +107,14 @@ class discriminator(nn.Module):
         super().__init__()
         self.discriminator = nn.Sequential(
                 GradientReversal(),
-                nn.Linear(320, 50),
+                nn.Linear(768, 1000, bias=True),
                 nn.ReLU(),
-                nn.Linear(50, 20),
+                nn.Linear(1000, 20),
                 nn.ReLU(),
                 nn.Linear(20, 1)
             )
     def forward(self, x):
-        return self.discriminator(x)
+        x = self.discriminator(x)
+        output = torch.sigmoid(x)
+        return output
     
