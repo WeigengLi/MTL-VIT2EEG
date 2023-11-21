@@ -49,20 +49,6 @@ class EEGViT_pretrained(nn.Module):
         shared_features = output.hidden_states[-1][:, 0]
         return positions, shared_features
 
-class discriminator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-                GradientReversalFunction(),
-                nn.Linear(768, 1000),
-                nn.ReLU(),
-                nn.Linear(1000, 20),
-                nn.ReLU(),
-                nn.Linear(20, 1)
-            )
-    def forward(self, x):
-        return self.discriminator(x)
-
 
 class GradientReversalFunction(Function):
     """
@@ -93,3 +79,17 @@ class GradientReversal(torch.nn.Module):
     def forward(self, x):
         return GradientReversalFunction.apply(x, self.lambda_)
     
+
+class discriminator(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.discriminator = nn.Sequential(
+                GradientReversal(),
+                nn.Linear(768, 1000),
+                nn.ReLU(),
+                nn.Linear(1000, 20),
+                nn.ReLU(),
+                nn.Linear(20, 1)
+            )
+    def forward(self, x):
+        return self.discriminator(x)

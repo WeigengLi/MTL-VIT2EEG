@@ -39,7 +39,7 @@ TASKS_TRAINER = {
     SINGLE_TASK : STL_Trainer,
     MULTI_TASK_RECON : MTL_RE_Trainer,
     MULTI_TASK_PUPIL : MTL_PU_Trainer,
-    MULTI_TASK_ADDA : MTL_ADDA_Trainer3
+    MULTI_TASK_ADDA : MTL_ADDA_Trainer4
 }
 # endregion
 
@@ -50,18 +50,25 @@ NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
 
+def get_pretrained_model():
+    model = DEFAULT_MODEL()
+    model.load_state_dict(torch.load('EEGViT_pretrained.pth'))
+    return model
+
+
 def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
-    for weight in [10000]:
-        for i in range(5):
-            model = DEFAULT_MODEL()
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-            mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                             discriminator = discriminator() , batch_size=64, n_epoch=15, weight = weight,
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
-            mt.run()
+
+    for i in range(5):
+        model = get_pretrained_model()
+        pretrain_model = get_pretrained_model()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
+        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
+                                            discriminator = discriminator(),pretrained_model = pretrain_model , batch_size=64, n_epoch=15, 
+                                        Trainer_name=f'MULTI_TASK_ADDA_weight/iter{str(i+1)}')
+        mt.run()
 
 if __name__ == '__main__':
     main()
