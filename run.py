@@ -9,8 +9,7 @@ import argparse
 from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 # TODO: ADD COMMIT about possible models and instructions
 from models.STL import EEGViT_pretrained, InceptionViT_pretrained,EEGViT_pretrained_hierachical2
-from models.Vit_reconstruct_1116 import ViT_reconstruct_modified
-from models.ViT_reconstruct_v5 import ViT_reconstruct_v5
+from models.ViT_reconstruct_v5 import ViT_reconstruct_modified
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
 
@@ -41,7 +40,7 @@ TASKS_TRAINER = {
 
 # region Task Config
 DEFAULT_TASK = MULTI_TASK_RECON
-DEFAULT_MODEL = ViT_reconstruct_v5
+DEFAULT_MODEL = ViT_reconstruct_modified
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
