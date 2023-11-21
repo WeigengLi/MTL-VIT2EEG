@@ -68,31 +68,19 @@ class ViT_reconstruct_v6(nn.Module):
         )
 
         self.dec_block4 = nn.Sequential(
-            nn.ConvTranspose2d(64, 32, (8, 1)),
+            nn.ConvTranspose2d(64, 32, (1, 36), stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(32),
             nn.ReLU(True)
         )
 
         self.dec_block5 = nn.Sequential(
-            nn.ConvTranspose2d(32, 16, (1, 36), stride=(1, 2), padding=(0, 1)),
+            nn.ConvTranspose2d(32, 16, (8, 1), stride=(2, 1), padding=(2, 0)),
             nn.InstanceNorm2d(16),
             nn.ReLU(True)
         )
 
         self.dec_block6 = nn.Sequential(
-            nn.ConvTranspose2d(16, 8, (8, 1), stride=(2, 1), padding=(2, 0)),
-            nn.InstanceNorm2d(8),
-            nn.ReLU(True)
-        )
-
-        self.dec_block7 = nn.Sequential(
-            nn.ConvTranspose2d(8, 4, (1, 36), stride=(1, 2), padding=(0, 1)),
-            nn.InstanceNorm2d(4),
-            nn.ReLU(True)
-        )
-
-        self.dec_block8 = nn.Sequential(
-            nn.ConvTranspose2d(4, 1, (8, 1), stride=(2, 1), padding=(2, 0)),
+            nn.ConvTranspose2d(16, 1, (1, 36), stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(1),
             nn.ReLU(True)
         )
@@ -117,8 +105,6 @@ class ViT_reconstruct_v6(nn.Module):
         x_reconstructed = self.dec_block4(x_reconstructed)
         x_reconstructed = self.dec_block5(x_reconstructed)
         x_reconstructed = self.dec_block6(x_reconstructed)
-        x_reconstructed = self.dec_block7(x_reconstructed)
-        x_reconstructed = self.dec_block8(x_reconstructed)
         x_reconstructed = self.up(x_reconstructed)
         x_reconstructed = self.tanh(x_reconstructed)
 
