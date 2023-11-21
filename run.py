@@ -12,7 +12,7 @@ from models.STL import  InceptionViT_pretrained,EEGViT_pretrained_hierachical2
 from models.Vit_reconstruct_1116 import ViT_reconstruct_modified
 from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
-from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer,MTL_ADDA_Trainer
+from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer,MTL_ADDA_Trainer3,MTL_ADDA_Trainer
 from models.ViT_ADDA import EEGViT_pretrained, discriminator
 
 
@@ -53,13 +53,13 @@ NUM_ITER = 3
 def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
-    for weight in [4000]:
+    for weight in [10000]:
         for i in range(5):
             model = DEFAULT_MODEL()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
             mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                             discriminator =discriminator() , batch_size=64, n_epoch=15, weight = weight,
+                                             discriminator = discriminator() , batch_size=64, n_epoch=15, weight = weight,
                                             Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
             mt.run()
 

@@ -444,7 +444,7 @@ class MTL_ADDA_Trainer2(ModelTrainer):
             return loss
 
 
-class MTL_ADDA_Trainer(ModelTrainer):
+class MTL_ADDA_Trainer3(ModelTrainer):
     def __init__(self, model, Dataset, optimizer, discriminator, scheduler=None, batch_size=64, n_epoch=15, weight = 1, Trainer_name='Trainer') -> None:
         self.discriminator = discriminator
         self.weight = weight
@@ -454,8 +454,8 @@ class MTL_ADDA_Trainer(ModelTrainer):
 
     def initialization(self):
         super().initialization()
-        self.optimizer =  torch.optim.Adam(list(self.discriminator.parameters()) + list(self.model.parameters()), lr=1e-4)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=6, gamma=0.1)
+        self.discriminator_optimizer =  torch.optim.Adam(self.discriminator.parameters(), lr=1e-4)
+        self.discriminator_scheduler = torch.optim.lr_scheduler.StepLR(self.discriminator_optimizer, step_size=6, gamma=0.1)
         self.discriminator.to(self.device)
         self.BCE_criterion = nn.BCEWithLogitsLoss()
         self.BCE_criterion.to(self.device)
@@ -479,6 +479,7 @@ class MTL_ADDA_Trainer(ModelTrainer):
             n_batches = len(source_loader)
             for i, ((source_x, source_labels, index), (target_x, trage_y, index2) )in tqdm(enumerate(batches), total=n_batches):
                 optimizer.zero_grad()
+                self.discriminator_optimizer.zero_grad()
                 x = torch.cat([source_x, target_x])
                 x = x.to(device)
                 domain_y = torch.cat([torch.ones(source_x.shape[0]),
@@ -492,12 +493,13 @@ class MTL_ADDA_Trainer(ModelTrainer):
 
                 domain_loss = BCE_criterion(domain_preds, domain_y)
                 position_loss = MSE_criterion(label_preds, label_y)
-                #TODO: 完成model的loss计算，其目标是最大化domain_loss,最小化position_loss
-                loss = position_loss-domain_loss*self.weight
-                domain_loss.backward()
-                #TODO: Domian loss计算很慢
+
+                domain_loss.backward(retain_graph=True)
+                loss = position_loss-domain_loss.item()*self.weight
                 loss.backward()
+                self.discriminator_optimizer.step()
                 optimizer.step()
+                
                 epoch_loss += loss.item()
                 epoch_position_loss += position_loss.item()
                 epoch_domain_loss += domain_loss.item()

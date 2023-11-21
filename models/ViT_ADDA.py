@@ -50,9 +50,10 @@ class EEGViT_pretrained(nn.Module):
         return positions, shared_features
 
 class discriminator(nn.Module):
-    def _apply(self):
+    def __init__(self):
+        super().__init__()
         self.discriminator = nn.Sequential(
-                GradientReversal(),
+                GradientReversalFunction(),
                 nn.Linear(768, 1000),
                 nn.ReLU(),
                 nn.Linear(1000, 20),
