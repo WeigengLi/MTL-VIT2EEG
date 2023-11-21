@@ -596,8 +596,7 @@ class MTL_ADDA_Trainer4(ModelTrainer):
                 label_preds = positions[:source_x.shape[0]]
 
                 domain_loss = BCE_criterion(domain_preds, domain_y)
-                position_loss = MSE_criterion(label_preds, label_y)
-
+        
                 domain_loss.backward(retain_graph=True)
                 loss = position_loss-domain_loss.item()*self.weight
                 loss.backward()
