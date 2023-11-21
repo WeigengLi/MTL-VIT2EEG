@@ -48,6 +48,8 @@ class EEGViT_pretrained(nn.Module):
         # Extracting the shared features
         shared_features = output.hidden_states[-1][:, 0]
         return positions, shared_features
+    
+
 
 
 class GradientReversalFunction(Function):
