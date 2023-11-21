@@ -355,6 +355,97 @@ class MTL_ADDA_Trainer(ModelTrainer):
                     f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
             return loss
                 
+class MTL_ADDA_Trainer2(ModelTrainer):
+    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, weight = 1, Trainer_name='Trainer') -> None:
+
+        self.weight = weight
+        super().__init__(model, Dataset, optimizer,
+                         scheduler, batch_size, n_epoch, Trainer_name)
+
+
+    def initialization(self):
+        super().initialization()
+        self.BCE_criterion = nn.BCEWithLogitsLoss()
+        self.BCE_criterion.to(self.device)
+        # 计算复制 target_loader 的倍数，以使其长度不小于 source_loader
+
+    def model_evaluate(self, stage, data_loader, epoch):
+        device = self.device
+        optimizer = self.optimizer
+        
+        MSE_criterion = self.criterion
+        BCE_criterion = self.BCE_criterion
+        epoch_loss = 0.0
+        epoch_position_loss = 0.0
+        epoch_domain_loss = 0.0
+        if stage == TRAIN_STAGE:
+            source_loader = self.train_loader
+            target_loader = self.test_loader
+            batches = zip(source_loader,  cycle(target_loader))
+            n_batches = len(source_loader)
+            for i, ((source_x, source_labels, index), (target_x, trage_y, index2) )in tqdm(enumerate(batches), total=n_batches):
+                optimizer.zero_grad()
+                x = torch.cat([source_x, target_x])
+                x = x.to(device)
+                domain_y = torch.cat([torch.ones(source_x.shape[0]),
+                                    torch.zeros(target_x.shape[0])])
+                domain_y = domain_y.to(device)
+                label_y = source_labels.to(device)
+                positions, domain_preds = self.model(x)
+
+                label_preds = positions[:source_x.shape[0]]
+                domain_loss = BCE_criterion(domain_preds.squeeze(), domain_y)
+                position_loss = MSE_criterion(label_preds, label_y)
+                loss = domain_loss*self.weight + position_loss
+                #TODO: Domian loss计算很慢
+                loss.backward()
+                optimizer.step()
+                epoch_loss += loss.item()
+                epoch_position_loss += position_loss.item()
+                epoch_domain_loss += domain_loss.item()
+                 # Print the loss and accuracy for the current batch
+                if stage == TRAIN_STAGE and i % 100 == 0:
+                    print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()} " +
+                        f" RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))} " +
+                        f" domain loss: {domain_loss.item()}")
+                    
+            loss = {'overall_loss': epoch_loss / len(data_loader),
+                    'position_loss': epoch_position_loss / len(data_loader),
+                    'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
+                    'domain_loss': domain_loss / len(data_loader)
+                    }
+
+            return loss
+            
+        # Test and Val stage is the same as Single Task Learning
+        else:
+            enumerator = tqdm(enumerate(data_loader)
+                          ) if stage == TRAIN_STAGE else enumerate(data_loader)
+
+            for i, (inputs, targets, *index) in enumerator:
+                # Move the inputs and targets to the GPU (if available)
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+                # Compute the outputs and loss for the current batch
+                positions, shared_features = self.model(inputs)
+                # loss = criterion(outputs.squeeze(), targets.squeeze())
+                position_loss = MSE_criterion(positions.squeeze(), targets.squeeze())
+                # Compute the gradients and update the parameters
+                epoch_loss += position_loss.item()
+                epoch_position_loss += position_loss.item()
+
+            loss = {'overall_loss': epoch_loss / len(data_loader),
+                    'position_loss': epoch_position_loss / len(data_loader),
+                    'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
+                    }
+            if stage in [TEST_STAGE, VAL_STAGE]:
+                print(
+                    f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
+            return loss
+
+
+
+
 
 # region helper functions
 

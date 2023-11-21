@@ -38,6 +38,14 @@ class EEGViT_pretrained(nn.Module):
         model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 1000, bias=True),
                                                torch.nn.Dropout(p=0.1),
                                                torch.nn.Linear(1000, 2, bias=True))
+        self.discriminator = nn.Sequential(
+                GradientReversal(),
+                nn.Linear(768, 1000),
+                nn.ReLU(),
+                nn.Linear(1000, 20),
+                nn.ReLU(),
+                nn.Linear(20, 1)
+            )
         self.ViT = model
 
     def forward(self, x):
@@ -47,30 +55,9 @@ class EEGViT_pretrained(nn.Module):
         positions = output.logits
         # Extracting the shared features
         shared_features = output.hidden_states[-1][:, 0]
-        
-        return positions, shared_features
+        domain = self.discriminator(shared_features)
+        return positions, domain
 
-
-
-
-
-
-def set_requires_grad(model, requires_grad=True):
-    for param in model.parameters():
-        param.requires_grad = requires_grad
-
-
-def loop_iterable(iterable):
-    while True:
-        yield from iterable
-
-
-class GrayscaleToRgb:
-    """Convert a grayscale image to rgb"""
-    def __call__(self, image):
-        image = np.array(image)
-        image = np.dstack([image, image, image])
-        return Image.fromarray(image)
 
 
 class GradientReversalFunction(Function):
@@ -101,20 +88,4 @@ class GradientReversal(torch.nn.Module):
 
     def forward(self, x):
         return GradientReversalFunction.apply(x, self.lambda_)
-    
-class discriminator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-                GradientReversal(),
-                nn.Linear(768, 1000),
-                nn.ReLU(),
-                nn.Linear(1000, 20),
-                nn.ReLU(),
-                nn.Linear(20, 1)
-            )
-    def forward(self, x):
-        x = self.discriminator(x)
-
-        return x
     
