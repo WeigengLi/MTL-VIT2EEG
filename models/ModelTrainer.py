@@ -130,7 +130,7 @@ class MTL_RE_Trainer(ModelTrainer):
             # Compute the gradients and update the parameters
             if stage == TRAIN_STAGE:
                 loss.backward()
-            optimizer.step()
+                optimizer.step()
             epoch_loss += loss.item()
             epoch_position_loss += position_loss.item()
             epoch_reconstruction_loss += reconstruction_loss.item()
@@ -186,7 +186,7 @@ class MTL_PU_Trainer(ModelTrainer):
             # Compute the gradients and update the parameters
             if stage == TRAIN_STAGE:
                 loss.backward()
-            optimizer.step()
+                optimizer.step()
             epoch_loss += loss.item()
             epoch_position_loss += position_loss.item()
             epoch_pupil_loss += pupil_size_loss.item()
@@ -225,7 +225,8 @@ class STL_Trainer(ModelTrainer):
             inputs = inputs.to(device)
             targets = targets.to(device)
             # Compute the outputs and loss for the current batch
-            optimizer.zero_grad()
+            if stage == TRAIN_STAGE:
+                optimizer.zero_grad()
             outputs = self.model(inputs)
 
             # loss = criterion(outputs.squeeze(), targets.squeeze())
@@ -233,7 +234,7 @@ class STL_Trainer(ModelTrainer):
             # Compute the gradients and update the parameters
             if stage == TRAIN_STAGE:
                 position_loss.backward()
-            optimizer.step()
+                optimizer.step()
             epoch_loss += position_loss.item()
             epoch_position_loss += position_loss.item()
 
