@@ -64,13 +64,13 @@ class ViT_reconstruct_v7(nn.Module):
         )
 
         self.dec_block3 = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, (1, 36), stride=(2, 2), padding=(1, 1)),
+            nn.ConvTranspose2d(128, 64, (1, 36), stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(64),
             nn.ReLU(True)
         )
 
         self.dec_block4 = nn.Sequential(
-            nn.ConvTranspose2d(64, 1, (8, 1), stride=(2, 2), padding=(1, 1)),
+            nn.ConvTranspose2d(64, 1, (8, 1), stride=(2, 1), padding=(1, 0)),
             nn.InstanceNorm2d(1),
             nn.ReLU(True)
         )
