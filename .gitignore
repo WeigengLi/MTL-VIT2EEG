@@ -18,3 +18,5 @@ __pycache__/
 !dataset/preparator
 logs/*
 !.gitkeep
+
+models/examplecode/*
