@@ -728,6 +728,8 @@ class MTL_ADDA_Trainer_with_pre(ModelTrainer):
 
     def adda_model_evaluate(self, stage, data_loader, epoch):
         if stage == TRAIN_STAGE:
+            with torch.no_grad():
+                self.STL_model_evaluate(TEST_STAGE, self.test_loader, epoch)
             device = self.device
             optimizer = self.optimizer
 
@@ -740,6 +742,7 @@ class MTL_ADDA_Trainer_with_pre(ModelTrainer):
             n_batches = len(target_loader)
             for i, ((source_x, source_labels, index), (target_x, trage_y, index2)) in tqdm(enumerate(batches), total=n_batches):
 
+                if i == n_batches: break
                 source_x = source_x.to(device)
                 target_x = target_x.to(device)
                 source_y = torch.ones(source_x.shape[0])
@@ -760,13 +763,14 @@ class MTL_ADDA_Trainer_with_pre(ModelTrainer):
                 
                 optimizer.zero_grad()
                 target_loss = BCE_criterion(target_preds, targe_y)
+                copied_target_loss = target_loss.clone().detach()
                 model_loss = -target_loss
-                model_loss.backward(retain_graph=True)
+                model_loss.backward()
                 optimizer.step()
                 
-                source_loss = BCE_criterion(source_preds, source_y)
-                domain_loss = source_loss + target_loss
                 self.discriminator_optimizer.zero_grad()
+                source_loss = BCE_criterion(source_preds, source_y)
+                domain_loss = source_loss + copied_target_loss
                 domain_loss.backward()
                 self.discriminator_optimizer.step()
                 
@@ -774,14 +778,14 @@ class MTL_ADDA_Trainer_with_pre(ModelTrainer):
 
                 epoch_domain_loss += domain_loss.item()
                 # Print the loss and accuracy for the current batch
-                if stage == TRAIN_STAGE and i % 100 == 0:
+                if stage == TRAIN_STAGE and i % 25 == 0:
                     print(f" domain loss: {domain_loss.item()}")
 
             loss = {'domain_loss': domain_loss / len(data_loader)}
             return loss
         # Test and Val stage is the same as Single Task Learning
         else:
-            self.STL_model_evaluate(self, stage, data_loader, epoch)
+            return self.STL_model_evaluate(stage, data_loader, epoch)
 
     def pretrain_model(self):
         self.model_evaluate = self.STL_model_evaluate

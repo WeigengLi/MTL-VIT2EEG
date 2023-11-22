@@ -78,7 +78,7 @@ def train_Vit():
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
         mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                            discriminator = discriminator(),pretrained_model = model , batch_size=64, n_epoch=15, 
+                                            discriminator = discriminator(),pretrained_model = model , batch_size=128, n_epoch=15, 
                                         Trainer_name=f'pretrain_original')
         mt.pretrain_model()
         torch.save(mt.model, 'EEGViT_pretrained.pth')
