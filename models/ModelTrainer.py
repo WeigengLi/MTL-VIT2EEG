@@ -699,11 +699,10 @@ class MTL_ADDA_Trainer_with_pre2(ModelTrainer):
             epoch_trage_loss = 0.0
             source_loader = self.train_loader
             target_loader = self.test_loader
-            c_target_loader = cycle(target_loader)
             batches = zip(source_loader,  cycle(target_loader))
-            first_batch = next(batches)
             n_batches = len(source_loader)
-            
+            predictions_accuracy = 0.0
+            epoch_log_domain_loss = 0.0
             for i, ((source_x, source_labels, index), (target_x, trage_y, index2)) in tqdm(enumerate(batches), total=n_batches):
                 optimizer.zero_grad()
                 x = torch.cat([source_x, target_x])
@@ -720,27 +719,35 @@ class MTL_ADDA_Trainer_with_pre2(ModelTrainer):
                 trage_loss = MSE_criterion(positions[source_x.shape[0]:], trage_y)
                 
                 domain_loss = BCE_criterion(domain_preds, domain_y)
-                domain_accury = nn
+                # 计算准确率
+                domain_preds_binary = (torch.sigmoid(domain_preds) > 0.5).float()  # 将预测转换为二元标签
+                correct = (domain_preds_binary == domain_y).float().sum()  # 计算正确预测的数量
 
+                
+                
+                log_domain_loss = torch.log(domain_loss.clamp(min=1e-6))
                 optimizer.zero_grad()
                 position_loss = MSE_criterion(label_preds, label_y)
-                loss = position_loss - domain_loss*self.weight 
+                loss = position_loss - log_domain_loss*self.weight 
                 loss.backward()
                 optimizer.step()
-                
+               
 
-                
+                predictions_accuracy += correct.item()/len(domain_y)
                 epoch_trage_loss+=trage_loss.item()
                 epoch_loss += loss.item()
                 epoch_position_loss += position_loss.item()
                 epoch_domain_loss += domain_loss.item()
-                epoch_trage_loss += trage_loss.item()
+                epoch_log_domain_loss+=log_domain_loss.item()
                 # Print the loss and accuracy for the current batch
                 if stage == TRAIN_STAGE and i % 100 == 0:
-                    print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()} \n" +
-                          f" RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))} \n" +
+                    print(f"\n Epoch {epoch}, Batch {i}\n overall_loss: { epoch_loss/(i+1)} \n"+
+                          f" position loss: {epoch_position_loss/(i+1)} \n" +
+                          f" Source RMSE(mm): {default_round(position_loss.item())} \n" +
                           f" domain loss: {domain_loss.item()}\n"+
-                          f" trage RMSE: {Cal_RMSE(epoch_trage_loss/i)}")
+                          f" epoch_log_domain_loss: {epoch_log_domain_loss/(i+1)} \n"+
+                          f" domain acc: {predictions_accuracy / (i+1)}\n"+
+                          f" trage RMSE: {Cal_RMSE(trage_loss.item())}\n")
 
             loss = {'overall_loss': epoch_loss / len(data_loader),
                     'position_loss': epoch_position_loss / len(data_loader),

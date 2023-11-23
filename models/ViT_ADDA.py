@@ -148,7 +148,7 @@ class discriminator_regrad(nn.Module):
     def __init__(self):
         super().__init__()
         self.discriminator = nn.Sequential(
-                #GradientReversal(),
+                GradientReversal(),
                 nn.Linear(768, 1000),
                 nn.ReLU(),
                 nn.Linear(1000, 20),
