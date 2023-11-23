@@ -130,7 +130,7 @@ class MTL_RE_Trainer(ModelTrainer):
             # Compute the gradients and update the parameters
             if stage == TRAIN_STAGE:
                 loss.backward()
-            optimizer.step()
+                optimizer.step()
             epoch_loss += loss.item()
             epoch_position_loss += position_loss.item()
             epoch_reconstruction_loss += reconstruction_loss.item()
