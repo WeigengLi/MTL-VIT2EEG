@@ -52,7 +52,7 @@ def main():
         model = DEFAULT_MODEL()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
-        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight=100,Trainer_name=f'ViT_reconstruct_modified_correcrt_stepsize4_{str(i+1)}')
+        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight=100,Trainer_name=f'ViT_reconstruct_modified_correcrt_stepsize5_{str(i+1)}')
         mt.run()
 
 if __name__ == '__main__':
