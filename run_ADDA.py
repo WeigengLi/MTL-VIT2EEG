@@ -68,6 +68,7 @@ def ADDA_with_pre():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     # TODO: 能不能先把discriminator训练好，然后再训练整个网络
+    # 比如将反转梯度作为一个选项，然后在训练的时候，可以选择是否反转梯度
     for weight in [3000]:
         for i in range(5):
             model = model=torch.load('EEGViT_pretrained.pth')
