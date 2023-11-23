@@ -21,7 +21,7 @@ add decoder blocks
 '''
 
 
-class ViT_reconstruct_v5(nn.Module):
+class ViT_reconstruct_v11(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(
@@ -127,7 +127,7 @@ class ViT_reconstruct_v5(nn.Module):
 
 if __name__ == '__main__':
     # Instantiate the model
-    model = ViT_reconstruct_v5()
+    model = ViT_reconstruct_v11()
 
     # Create a dummy input tensor
     batch_size = 1
