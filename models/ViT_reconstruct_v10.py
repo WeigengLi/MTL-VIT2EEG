@@ -86,7 +86,7 @@ class ViT_reconstruct_v10(nn.Module):
         shared_features = output.hidden_states[-1]
 
         # Decoder
-        reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 1, 14)
+        reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 16, 14)
         x_reconstructed = self.dec_block1(reshaped_features)
         x_reconstructed = self.dec_block2(x_reconstructed)
         x_reconstructed = self.dec_block3(x_reconstructed)
