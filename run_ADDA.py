@@ -89,8 +89,8 @@ def ADDA_with_pre_dis():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
 
-    for weight in [4000]:
-        for i in range(5):
+    for weight in [2000]:
+        for i in range(2):
             model = model=torch.load('EEGViT_pretrained.pth')
             discriminator = discriminator_clean()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)

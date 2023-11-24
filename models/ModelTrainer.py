@@ -941,7 +941,7 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
             if stage == TRAIN_STAGE and i % 100 == 0:
                     print(f"\n Epoch {epoch}, Batch {i}\n overall_loss: { epoch_loss/(i+1)} \n"+
                           f" position loss: {epoch_position_loss/(i+1)} \n" +
-                          f" Source RMSE(mm): {default_round(position_loss.item())} \n" +
+                          f" Source RMSE(mm): { Cal_RMSE(epoch_position_loss / (i+1))} \n" +
                           f" domain loss: {domain_loss.item()}\n"+
                           f" epoch_log_domain_loss: {epoch_log_domain_loss/(i+1)} \n"+
                           f" domain acc: {predictions_accuracy / (i+1)}\n"
