@@ -775,11 +775,14 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
         self.discriminator_optimizer = torch.optim.Adam(
             self.discriminator.parameters(), lr=1e-4)
         self.discriminator_scheduler = torch.optim.lr_scheduler.StepLR(
-            self.discriminator_optimizer, step_size=6, gamma=0.1)
+            self.discriminator_optimizer, step_size=8, gamma=0.1)
         self.BCE_criterion = nn.BCEWithLogitsLoss()
         self.BCE_criterion.to(self.device)
         # 计算复制 target_loader 的倍数，以使其长度不小于 source_loader
-
+    
+ 
+    
+    
     def STL_model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
@@ -822,49 +825,70 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
         return loss
 
     def train_discriminator(self,stage, data_loader, epoch):
+        self.discriminator.train()
+        self.model.eval()
         device = self.device
-       
         BCE_criterion = self.BCE_criterion
-        epoch_loss = 0.0
-        epoch_position_loss = 0.0
         epoch_domain_loss = 0.0
-
         source_loader = self.train_loader
         target_loader = self.test_loader
 
         batches = zip(source_loader,  cycle(target_loader))
-
+        predictions_accuracy=0.0
         n_batches = len(source_loader)
-        
+        print(f"Get shared features of source and traget domain for training discriminator")
+        # Generate shared features for the source and target domains
+        shear_features = torch.tensor([]).to(device)
+        domain_ys =torch.tensor([]).to(device)
         for i, ((source_x, source_labels, index), (target_x, trage_y, index2)) in tqdm(enumerate(batches), total=n_batches):
-            
             x = torch.cat([source_x, target_x])
             x = x.to(device)
             domain_y = torch.cat([torch.ones(source_x.shape[0]),
                                     torch.zeros(target_x.shape[0])])
-            domain_y = domain_y.to(device)
-            label_y = source_labels.to(device)
-            trage_y = trage_y.to(device)
+            domain_y=domain_y.to(device)
+            domain_ys = torch.cat([domain_ys, domain_y])
+            with torch.no_grad():
+                positions, shear_feature = self.model(x)
+            shear_features = torch.cat([shear_features, shear_feature])
+        
+        # train discriminator for num_epochs
+        num_epochs = 48
+        overall_loss = 0.0
+        overall_acc = 0.0
+        print(f"Train discriminator for {num_epochs} epochs")
+        for i in tqdm(range(num_epochs), total=num_epochs):
+            batch_size  = self.batch_size
+            epoch_predictions_accuracy=0.0
+            epoch_domain_loss = 0.0
+            for sf_start in range(0, len(shear_features), batch_size):
+                sf_end = sf_start + batch_size
+                sf = shear_features[sf_start:sf_end]
+                domain_y = domain_ys[sf_start:sf_end]
+                domain_preds = self.discriminator(sf).squeeze()
 
-            positions, sf = self.model(x)
-            domain_preds = self.discriminator(sf).squeeze()
-            
-            domain_loss = BCE_criterion(domain_preds, domain_y)
-            self.discriminator_optimizer.zero_grad()
-            domain_loss.backward()
-            self.discriminator_optimizer.step()
-            epoch_domain_loss += domain_loss.item()
-            # Print the loss and accuracy for the current batch
-            if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f" domain loss: {domain_loss.item()}\n")
-        loss = {'overall_loss': epoch_loss / len(data_loader),
-                'position_loss': epoch_position_loss / len(data_loader),
-                'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'domain_loss': domain_loss / len(data_loader)
-                }
-        return loss
+                domain_loss = BCE_criterion(domain_preds, domain_y)
+                self.discriminator_optimizer.zero_grad()
+                domain_loss.backward()
+                self.discriminator_optimizer.step()
+                epoch_domain_loss += domain_loss.item()
+                
+                # 计算准确率
+                domain_preds_binary = (torch.sigmoid(domain_preds) > 0.5).float()  # 将预测转换为二元标签
+                correct = (domain_preds_binary == domain_y).float().sum()  # 计算正确预测的数量
+                epoch_predictions_accuracy += correct.item()/len(domain_y)
+        
+            overall_acc +=  epoch_predictions_accuracy / (len(shear_features)/batch_size)
+            overall_loss += epoch_domain_loss/ (len(shear_features)/batch_size)
+        overall_loss /=num_epochs
+        overall_acc /=num_epochs
+        # Print the loss and accuracy for the current batch
+        print(f"\n Epoch {epoch} \n tune_domain loss: {overall_loss}\n"+
+                    f" tune_domain acc: {overall_acc}\n")
+        return {'tune_domain_loss': overall_loss,
+                'tune_domain_acc': overall_acc}
     
     def train_model(self,stage, data_loader, epoch):
+        
         device = self.device
         optimizer = self.optimizer
         MSE_criterion = self.criterion
@@ -872,13 +896,17 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
         epoch_loss = 0.0
         epoch_position_loss = 0.0
         epoch_domain_loss = 0.0
-        epoch_trage_loss = 0.0
+        epoch_log_domain_loss = 0.0
         source_loader = self.train_loader
         target_loader = self.test_loader
-        batches = zip(source_loader,  cycle(target_loader))
-
-        n_batches = len(source_loader)
         
+        dis_loss = self.train_discriminator(stage, data_loader, epoch)
+        print(f"Training model with fix discriminator for batches")
+        batches = zip(source_loader,  cycle(target_loader))
+        predictions_accuracy = 0.0
+        n_batches = len(source_loader)
+        self.discriminator.eval()
+        self.model.train()
         for i, ((source_x, source_labels, index), (target_x, trage_y, index2)) in tqdm(enumerate(batches), total=n_batches):
             optimizer.zero_grad()
             x = torch.cat([source_x, target_x])
@@ -887,106 +915,52 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
                                     torch.zeros(target_x.shape[0])])
             domain_y = domain_y.to(device)
             label_y = source_labels.to(device)
-            trage_y = trage_y.to(device)
-
             positions, sf = self.model(x)
-            domain_preds = self.discriminator(sf).squeeze()
-            label_preds = positions[:source_x.shape[0]]
-            trage_loss = MSE_criterion(positions[source_x.shape[0]:], trage_y)
-            
+            with torch.no_grad():
+                domain_preds = self.discriminator(sf).squeeze()
+            label_preds = positions[:source_x.shape[0]]   
             domain_loss = BCE_criterion(domain_preds, domain_y)
 
             optimizer.zero_grad()
             position_loss = MSE_criterion(label_preds, label_y)
-            loss = position_loss - domain_loss*self.weight 
+            log_domain_loss = torch.log(domain_loss.clamp(min=1e-6))
+            loss = position_loss - log_domain_loss*self.weight 
             loss.backward()
             optimizer.step()
+            # 计算准确率
+            domain_preds_binary = (torch.sigmoid(domain_preds) > 0.5).float()  # 将预测转换为二元标签
+            correct = (domain_preds_binary == domain_y).float().sum()  # 计算正确预测的数量
+            predictions_accuracy += correct.item()/len(domain_y)
+            epoch_log_domain_loss+=log_domain_loss.item()
             
-
-            
-            epoch_trage_loss+=trage_loss.item()
             epoch_loss += loss.item()
             epoch_position_loss += position_loss.item()
             epoch_domain_loss += domain_loss.item()
-            epoch_trage_loss += trage_loss.item()
+           
             # Print the loss and accuracy for the current batch
             if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()} \n" +
-                        f" RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))} \n" +
-                        f" domain loss: {domain_loss.item()}\n"+
-                        f" trage RMSE: {Cal_RMSE(epoch_trage_loss/i)}")
+                    print(f"\n Epoch {epoch}, Batch {i}\n overall_loss: { epoch_loss/(i+1)} \n"+
+                          f" position loss: {epoch_position_loss/(i+1)} \n" +
+                          f" Source RMSE(mm): {default_round(position_loss.item())} \n" +
+                          f" domain loss: {domain_loss.item()}\n"+
+                          f" epoch_log_domain_loss: {epoch_log_domain_loss/(i+1)} \n"+
+                          f" domain acc: {predictions_accuracy / (i+1)}\n"
+                          )
 
         loss = {'overall_loss': epoch_loss / len(data_loader),
                 'position_loss': epoch_position_loss / len(data_loader),
                 'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'domain_loss': domain_loss / len(data_loader)
+                'domain_loss': domain_loss / len(data_loader),
+                'log_domain_loss': epoch_log_domain_loss / len(data_loader),
+                "domain_acc": predictions_accuracy / len(data_loader),
                 }
-
+        loss.update(dis_loss)
         return loss
             
 
     def model_evaluate(self, stage, data_loader, epoch):
         if stage == TRAIN_STAGE:
-            device = self.device
-            optimizer = self.optimizer
-            MSE_criterion = self.criterion
-            BCE_criterion = self.BCE_criterion
-            epoch_loss = 0.0
-            epoch_position_loss = 0.0
-            epoch_domain_loss = 0.0
-            epoch_trage_loss = 0.0
-            source_loader = self.train_loader
-            target_loader = self.test_loader
-            c_target_loader = cycle(target_loader)
-            batches = zip(source_loader,  cycle(target_loader))
-            first_batch = next(batches)
-            n_batches = len(source_loader)
-            
-            for i, ((source_x, source_labels, index), (target_x, trage_y, index2)) in tqdm(enumerate(batches), total=n_batches):
-                optimizer.zero_grad()
-                x = torch.cat([source_x, target_x])
-                x = x.to(device)
-                domain_y = torch.cat([torch.ones(source_x.shape[0]),
-                                      torch.zeros(target_x.shape[0])])
-                domain_y = domain_y.to(device)
-                label_y = source_labels.to(device)
-                trage_y = trage_y.to(device)
-
-                positions, sf = self.model(x)
-                domain_preds = self.discriminator(sf).squeeze()
-                label_preds = positions[:source_x.shape[0]]
-                trage_loss = MSE_criterion(positions[source_x.shape[0]:], trage_y)
-                
-                domain_loss = BCE_criterion(domain_preds, domain_y)
-                domain_accury = nn
-
-                optimizer.zero_grad()
-                position_loss = MSE_criterion(label_preds, label_y)
-                loss = position_loss - domain_loss*self.weight 
-                loss.backward()
-                optimizer.step()
-                
-
-                
-                epoch_trage_loss+=trage_loss.item()
-                epoch_loss += loss.item()
-                epoch_position_loss += position_loss.item()
-                epoch_domain_loss += domain_loss.item()
-                epoch_trage_loss += trage_loss.item()
-                # Print the loss and accuracy for the current batch
-                if stage == TRAIN_STAGE and i % 100 == 0:
-                    print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()} \n" +
-                          f" RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))} \n" +
-                          f" domain loss: {domain_loss.item()}\n"+
-                          f" trage RMSE: {Cal_RMSE(epoch_trage_loss/i)}")
-
-            loss = {'overall_loss': epoch_loss / len(data_loader),
-                    'position_loss': epoch_position_loss / len(data_loader),
-                    'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                    'domain_loss': domain_loss / len(data_loader)
-                    }
-
-            return loss
+            return self.train_model(stage, data_loader, epoch)
 
         # Test and Val stage is the same as Single Task Learning
         else:

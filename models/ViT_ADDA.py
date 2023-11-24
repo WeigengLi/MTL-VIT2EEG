@@ -130,7 +130,7 @@ class GradientReversal(torch.nn.Module):
         return GradientReversalFunction.apply(x, self.lambda_)
     
 
-class discriminator(nn.Module):
+class discriminator_clean(nn.Module):
     def __init__(self):
         super().__init__()
         self.discriminator = nn.Sequential(

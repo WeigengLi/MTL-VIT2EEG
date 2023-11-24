@@ -71,18 +71,36 @@ def ADDA_with_pre():
     # 比如将反转梯度作为一个选项，然后在训练的时候，可以选择是否反转梯度
     for weight in [3000]:
         for i in range(5):
-            model = model=torch.load('EEGViT_pretrained.pth')
+            model = torch.load('EEGViT_pretrained.pth')
             discriminator = discriminator_regrad()
             optimizer = torch.optim.Adam([
                             {'params': model.parameters(), 'lr': 1e-4},
                             {'params': discriminator.parameters(), 'lr': 1e-2}
                         ])
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-            mt = MTL_ADDA_Trainer_with_pre2(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator_regrad(),
+            mt = MTL_ADDA_Trainer_with_pre2(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
+                                             batch_size=64, n_epoch=15, weight = weight,
+                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
+            mt.run()
+    
+    
+# 预训练模型和判别器，然后再训练整个网络
+def ADDA_with_pre_dis():
+    data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
+    Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
+
+    for weight in [4000]:
+        for i in range(5):
+            model = model=torch.load('EEGViT_pretrained.pth')
+            discriminator = discriminator_clean()
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
+            mt = MTL_ADDA_Trainer_with_pre_seper(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
                                              batch_size=64, n_epoch=15, weight = weight,
                                             Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
             mt.run()
 
 
+
 if __name__ == '__main__':
-    ADDA_with_pre()
+    ADDA_with_pre_dis()
