@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, ConcatDataset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import numpy as np
@@ -831,10 +831,10 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
         BCE_criterion = self.BCE_criterion
         epoch_domain_loss = 0.0
         source_loader = self.train_loader
-        target_loader = self.test_loader
+        # 假设 source_loader 和 target_loader 是两个 DataLoader
+        #combined_loader = DataLoader(ConcatDataset([self.test_loader.dataset, self.val_loader.dataset]), batch_size=self.batch_size)
+        batches = zip(source_loader,  cycle(self.test_loader.dataset))
 
-        batches = zip(source_loader,  cycle(target_loader))
-        predictions_accuracy=0.0
         n_batches = len(source_loader)
         print(f"Get shared features of source and traget domain for training discriminator")
         # Generate shared features for the source and target domains
@@ -850,7 +850,8 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
             with torch.no_grad():
                 positions, shear_feature = self.model(x)
             shear_features = torch.cat([shear_features, shear_feature])
-        
+        save_path = f'logs/{self.Trainer_name}/shared_features_epoch{epoch}.html'
+        plot_shear_feature(shear_features, domain_ys, save_path)
         # train discriminator for num_epochs
         num_epochs = 48
         overall_loss = 0.0
@@ -950,7 +951,7 @@ class MTL_ADDA_Trainer_with_pre_seper(ModelTrainer):
         loss = {'overall_loss': epoch_loss / len(data_loader),
                 'position_loss': epoch_position_loss / len(data_loader),
                 'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'domain_loss': domain_loss / len(data_loader),
+                'domain_loss': epoch_domain_loss / len(data_loader),
                 'log_domain_loss': epoch_log_domain_loss / len(data_loader),
                 "domain_acc": predictions_accuracy / len(data_loader),
                 }
@@ -1117,5 +1118,65 @@ def Cal_RMSE(loss):
 
 def default_round(a):
     return round(a, 2)
+
+
+import torch
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import plotly.express as px
+import os
+
+
+import os
+import plotly.express as px
+
+def plot_shear_feature(shear_features, domain_labels, save_path):
+    """
+    Plot PCA of normalized shear features with domain labels using Plotly.
+
+    Parameters:
+    - shear_features (torch.Tensor): Tensor containing shear features.
+    - domain_labels (torch.Tensor): Tensor containing domain labels.
+    - save_path (str): Path to save the plot.
+
+    Returns:
+    None
+    """
+
+    # Normalize shear_features
+    shear_features_np = shear_features.cpu().detach().numpy()
+    scaler = StandardScaler()
+    shear_features_normalized = scaler.fit_transform(shear_features_np)
+
+    # Apply PCA
+    n_components = 3
+    pca = PCA(n_components=n_components)
+    shear_features_pca = pca.fit_transform(shear_features_normalized)
+
+    # Calculate the percentage of information in each principal component
+    explained_var_ratio = pca.explained_variance_ratio_
+    info_percentage = [f"{round(ratio * 100, 2)}%" for ratio in explained_var_ratio]
+
+    # Create a DataFrame for Plotly
+    import pandas as pd
+    df = pd.DataFrame(data=shear_features_pca, columns=['PC1', 'PC2', 'PC3'])
+    df['Domain Labels'] = domain_labels.cpu().detach().numpy()
+
+    # Plotting with Plotly
+    fig = px.scatter_3d(df, x='PC1', y='PC2', z='PC3', color='Domain Labels', symbol='Domain Labels',
+                        labels={'PC1': f'Principal Component 1 ({info_percentage[0]})',
+                                'PC2': f'Principal Component 2 ({info_percentage[1]})',
+                                'PC3': f'Principal Component 3 ({info_percentage[2]})'},
+                        title='PCA of Normalized Shear Features with Domain Labels')
+
+    # Check if the directory exists, create it if not
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    # Save the plot as an interactive HTML file
+    fig.write_html(save_path)
+
+
+
 
 # endregion

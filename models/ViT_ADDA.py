@@ -136,10 +136,9 @@ class discriminator_clean(nn.Module):
         self.discriminator = nn.Sequential(
                 #GradientReversal(),
                 nn.Linear(768, 1000),
+                torch.nn.Dropout(p=0.3),
                 nn.ReLU(),
-                nn.Linear(1000, 20),
-                nn.ReLU(),
-                nn.Linear(20, 1)
+                nn.Linear(1000, 1)
             )
     def forward(self, x):
         return self.discriminator(x)
