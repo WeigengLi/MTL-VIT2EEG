@@ -85,22 +85,22 @@ def ADDA_with_pre():
     
     
 # 预训练模型和判别器，然后再训练整个网络
-def ADDA_with_pre_dis():
+def ADDA_position():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
 
     for weight in [3000,4000,6000,8000]:
         for i in range(2):
             model = model=torch.load('EEGViT_pretrained.pth')
-            discriminator = discriminator_clean()
+            discriminator = discriminator_position()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-            mt = MTL_ADDA_Trainer_with_pre_seper(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
+            mt = MTL_position_ADDA(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
                                              batch_size=64, n_epoch=10, weight = weight,
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test4/iter{str(i+1)}')
+                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test5/iter{str(i+1)}')
             mt.run()
 
 # TODO: 对预测结果进行对抗学习呢
 
 if __name__ == '__main__':
-    ADDA_with_pre_dis()
+    ADDA_position()

@@ -142,6 +142,24 @@ class discriminator_clean(nn.Module):
             )
     def forward(self, x):
         return self.discriminator(x)
+    
+    
+class discriminator_position(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.discriminator = nn.Sequential(
+                #GradientReversal(),
+                nn.Linear(2, 256),
+                torch.nn.Dropout(p=0.1),
+                nn.ReLU(),
+                nn.Linear(256, 1)
+            )
+    def forward(self, x):
+        return self.discriminator(x)
+
+
+
+
 
 class discriminator_regrad(nn.Module):
     def __init__(self):
