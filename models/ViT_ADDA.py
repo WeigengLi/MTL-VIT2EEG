@@ -136,7 +136,7 @@ class discriminator_clean(nn.Module):
         self.discriminator = nn.Sequential(
                 #GradientReversal(),
                 nn.Linear(768, 1000),
-                torch.nn.Dropout(p=0.3),
+                torch.nn.Dropout(p=0.1),
                 nn.ReLU(),
                 nn.Linear(1000, 1)
             )
@@ -150,7 +150,6 @@ class discriminator_position(nn.Module):
         self.discriminator = nn.Sequential(
                 #GradientReversal(),
                 nn.Linear(2, 256),
-                torch.nn.Dropout(p=0.1),
                 nn.ReLU(),
                 nn.Linear(256, 1)
             )

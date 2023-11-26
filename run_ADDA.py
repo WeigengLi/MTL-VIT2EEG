@@ -69,8 +69,8 @@ def ADDA_with_pre():
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     # TODO: 能不能先把discriminator训练好，然后再训练整个网络
     # 比如将反转梯度作为一个选项，然后在训练的时候，可以选择是否反转梯度
-    for weight in [3000,4000]:
-        for i in range(5):
+    for weight in [3000]:
+        for i in range(2):
             model = torch.load('EEGViT_pretrained.pth')
             discriminator = discriminator_regrad()
             optimizer = torch.optim.Adam([
@@ -79,8 +79,8 @@ def ADDA_with_pre():
                         ])
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
             mt = MTL_ADDA_Trainer_with_pre2(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
-                                             batch_size=64, n_epoch=15, weight = weight,
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
+                                             batch_size=64, n_epoch=8, weight = weight,
+                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test6/iter{str(i+1)}')
             mt.run()
     
     
@@ -97,10 +97,10 @@ def ADDA_position():
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
             mt = MTL_position_ADDA(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
                                              batch_size=64, n_epoch=10, weight = weight,
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test5/iter{str(i+1)}')
+                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test6/iter{str(i+1)}')
             mt.run()
 
 # TODO: 对预测结果进行对抗学习呢
 
 if __name__ == '__main__':
-    ADDA_position()
+    ADDA_with_pre()
