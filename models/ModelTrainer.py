@@ -26,6 +26,7 @@ class ModelTrainer(ABC):
         self.Trainer_name = Trainer_name
         self.initialization()
 
+    
     def initialization(self):
         model = self.model
         Dataset = self.Dataset
@@ -1455,6 +1456,13 @@ class MTL_ADDA_Trainer5(ModelTrainer):
         # Test and Val stage is the same as Single Task Learning
         else:
             self.STL_model_evaluate(stage, data_loader, epoch)
+
+
+
+
+class MTL_ADDA_with_pupil(ModelTrainer):
+    pass
+
 
 
 

@@ -42,17 +42,18 @@ TASKS_TRAINER = {
 # endregion
 
 # region Task Config
-DEFAULT_TASK = MULTI_TASK_PUPIL
+DEFAULT_TASK = SINGLE_TASK
 DEFAULT_MODEL = ViT_pupil_Cascade
-NEW_DATA_PATH = './dataset\MTL_pupil_size\Position_task_with_dots_synchronized_min.npz'
+NEW_DATA_PATH = './dataset\MTL_pupil_size_std\Position_task_with_dots_synchronized_min.npz'
 NUM_ITER = 3
 # endregion
 
 
-def main():
+def MTL():
+    specific_task = '3fc'
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
-    for weight in [0.1]:
+    for weight in [1000]:
         for i in range(1):
             model = DEFAULT_MODEL()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -60,11 +61,26 @@ def main():
                 optimizer, step_size=6, gamma=0.1)
             mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer=optimizer, scheduler=scheduler,
                                              batch_size=64, n_epoch=30, weight=weight,
-                                             Trainer_name=f'MTLViT_pretrained_pupuil_test3{weight}')
+                                             Trainer_name=f'{DEFAULT_TASK}_{specific_task}_{weight}')
             mt.run()
-            torch.save(mt.model, 'MTLViT_pretrained_pupuil_weight_0.1.pth')
+            #torch.save(mt.model, f'{DEFAULT_TASK}_{specific_task}_{weight}.pth')
             
 
+def STL():
+    specific_task = '3fc'
+    data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
+    Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
+    for weight in [1000]:
+        for i in range(1):
+            model = DEFAULT_MODEL()
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, step_size=6, gamma=0.1)
+            mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer=optimizer, scheduler=scheduler,
+                                             batch_size=64, n_epoch=30,
+                                             Trainer_name=f'{DEFAULT_TASK}_{specific_task}_{weight}')
+            mt.run()
+            torch.save(mt.model, f'{DEFAULT_TASK}_{specific_task}_{weight}.pth')
 
 if __name__ == '__main__':
-    main()
+    MTL()

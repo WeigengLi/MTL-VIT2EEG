@@ -13,7 +13,7 @@ from models.Vit_reconstruct_1116 import ViT_reconstruct_modified
 from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import *
-from models.ViT_ADDA import EEGViT_pretrained, discriminator
+from models.ViT_ADDA import EEGViT_pretrained_129, discriminator_clean
 
 
 
@@ -45,7 +45,7 @@ TASKS_TRAINER = {
 
 # region Task Config
 DEFAULT_TASK = MULTI_TASK_ADDA
-DEFAULT_MODEL = EEGViT_pretrained
+DEFAULT_MODEL = EEGViT_pretrained_129
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
@@ -64,7 +64,7 @@ def train_adda():
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
         mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                            discriminator = discriminator(),pretrained_model = pretrain_model , batch_size=64, n_epoch=15, 
+                                            discriminator = discriminator_clean(),pretrained_model = pretrain_model , batch_size=64, n_epoch=15, 
                                         Trainer_name=f'MULTI_TASK_ADDA/iter{str(i+1)}')
         mt.train_adda()
 
@@ -74,15 +74,15 @@ def train_Vit():
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
 
     for i in range(1):
-        model = EEGViT_pretrained()
+        model = EEGViT_pretrained_129()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
         mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                            discriminator = discriminator(),pretrained_model = model , batch_size=128, n_epoch=15, 
-                                        Trainer_name=f'pretrain_original')
+                                            discriminator = discriminator_clean(),pretrained_model = model , batch_size=64, n_epoch=30, 
+                                        Trainer_name=f'pretrain_EEGViT_pretrained_129')
         mt.pretrain_model()
-        torch.save(mt.model, 'EEGViT_pretrained.pth')
+        torch.save(mt.model, 'EEGViT_pretrained_129.pth')
         
 
 if __name__ == '__main__':
-    train_adda()
+    train_Vit()

@@ -138,23 +138,27 @@ class ViT_pupil_Cascade(nn.Module):
         config = transformers.ViTConfig.from_pretrained(model_name)
         config.update({'num_channels': 256})
         config.update({'image_size': (129, 14)})
-        config.update({'patch_size': (8, 1)})
+        config.update({'patch_size': (129, 1)})
         model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
                                                                        ignore_mismatched_sizes=True)
-        model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(256, 768, kernel_size=(8, 1), stride=(8, 1),
+        model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(256, 768, kernel_size=(129, 1), stride=(129, 1),
                                                                            padding=(0, 0), groups=256)
     
         self.model = model.vit  # Only take the ViT part without the classification head
         # Position Prediction Branch
         self.position_predictor = nn.Sequential(
-                                nn.Linear(769 , 1000, bias=True),
+                                nn.Linear(769 , 2048, bias=True),
+                                nn.Dropout(p=0.1),
+                                nn.Linear(2048 , 1000, bias=True),
                                 nn.Dropout(p=0.1),
                                 nn.Linear(1000, 2, bias=True))
         self.pupil_size_predictor=torch.nn.Sequential(
                                 torch.nn.Linear(768 ,1000,bias=True),
                                 torch.nn.Dropout(p=0.1),
                                 torch.nn.Linear(1000,1,bias=True))
+        
 
+        
 
     def forward(self, x):
         x = self.conv1(x)

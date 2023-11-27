@@ -13,7 +13,7 @@ from models.Vit_reconstruct_1116 import ViT_reconstruct_modified
 from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import *
-from models.ViT_ADDA import EEGViT_pretrained, discriminator
+from models.ViT_ADDA import EEGViT_pretrained_129, discriminator_clean
 
 
 
@@ -44,8 +44,8 @@ TASKS_TRAINER = {
 # endregion
 
 # region Task Config
-DEFAULT_TASK = MULTI_TASK_ADDA
-DEFAULT_MODEL = EEGViT_pretrained
+DEFAULT_TASK = SINGLE_TASK
+DEFAULT_MODEL = EEGViT_pretrained_129
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
@@ -59,7 +59,7 @@ def main():
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
             mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                             discriminator = discriminator() , batch_size=64, n_epoch=15, weight = weight,
+                                             batch_size=64, n_epoch=30, 
                                             Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
             mt.run()
 

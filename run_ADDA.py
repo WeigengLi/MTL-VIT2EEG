@@ -70,7 +70,7 @@ def ADDA_with_pre():
     # TODO: 能不能先把discriminator训练好，然后再训练整个网络
     # 比如将反转梯度作为一个选项，然后在训练的时候，可以选择是否反转梯度
     for weight in [3000]:
-        for i in range(2):
+        for i in range(6):
             model = torch.load('EEGViT_pretrained.pth')
             discriminator = discriminator_regrad()
             optimizer = torch.optim.Adam([
@@ -78,9 +78,9 @@ def ADDA_with_pre():
                             {'params': discriminator.parameters(), 'lr': 1e-2}
                         ])
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-            mt = MTL_ADDA_Trainer_with_pre2(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
+            mt = MTL_ADDA_Trainer_with_pre2(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator_regrad(),
                                              batch_size=64, n_epoch=8, weight = weight,
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test6/iter{str(i+1)}')
+                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_un_updated_dis/iter{str(i+1)}')
             mt.run()
     
     
