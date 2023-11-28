@@ -14,7 +14,7 @@ from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import *
 from models.ViT_ADDA import *
-
+from models.pointnet2_cls_ssg import *
 
 
 # region Global Config
@@ -32,7 +32,7 @@ TASKS_HELP = {
 TASKS_DATA = {
     SINGLE_TASK : EEGEyeNetDataset,
     MULTI_TASK_RECON : EEGEyeNetDataset,
-    MULTI_TASK_ADDA : EEGEyeNetDataset,
+    MULTI_TASK_ADDA : MTLPupilDataset,
     MULTI_TASK_PUPIL : MTLPupilDataset
 }
 TASKS_TRAINER = {
@@ -86,21 +86,48 @@ def ADDA_with_pre():
     
 # 预训练模型和判别器，然后再训练整个网络
 def ADDA_position():
-    data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
-    Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
+    data_path = './dataset/MTL_pupil_size_std/Position_task_with_dots_synchronized_min.npz' 
+    Dataset = MTLPupilDataset(data_path)
 
-    for weight in [3000,4000,6000,8000]:
+    for weight in [5000]:
         for i in range(2):
-            model = model=torch.load('EEGViT_pretrained.pth')
+            model = model=torch.load('MTL_PU_3fc_12step_1000.pth')
             discriminator = discriminator_position()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-            mt = MTL_position_ADDA(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
-                                             batch_size=64, n_epoch=10, weight = weight,
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}_test6/iter{str(i+1)}')
+            mt = MTL_position_pupil_ADDA_v2(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
+                                             batch_size=64, n_epoch=20, weight = weight,
+                                            Trainer_name=f'MULTI_ADDA_stdpupil_position_12step_deepdis_weight{weight}_test2/iter{str(i+1)}')
             mt.run()
+# 分离了预训练模型和新的模型
+def ADDA_position_sep():
+    data_path = './dataset/MTL_pupil_size_std/Position_task_with_dots_synchronized_min.npz' 
+    Dataset = MTLPupilDataset(data_path)
 
+    for weight in [1000]:
+        for i in range(2):
+            model = model=torch.load('MTL_PU_3fc_12step_1000.pth')
+            discriminator = discriminator_position()
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
+            mt = MTL_position_pupil_ADDA_v3(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
+                                             batch_size=64, n_epoch=20, weight = weight,
+                                            Trainer_name=f'MULTI_ADDA_stdpupil_position_sep_weight{weight}_test/iter{str(i+1)}')
+            mt.run()
 # TODO: 对预测结果进行对抗学习呢
+def ADDA_position_pointsnet():
+    data_path = './dataset/MTL_pupil_size_std/Position_task_with_dots_synchronized_min.npz' 
+    Dataset = MTLPupilDataset(data_path)
 
+    for weight in [5000]:
+        for i in range(2):
+            model = model=torch.load('MTL_PU_3fc_12step_1000.pth')
+            discriminator = PointNetPlusPlusClassifier(num_class=1)
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
+            mt = MTL_position_pupil_ADDA_pointnet(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
+                                             batch_size=64, n_epoch=20, weight = weight,
+                                            Trainer_name=f'MULTI_ADDA_stdpupil_position_pointsnet{weight}_test2/iter{str(i+1)}')
+            mt.run()
 if __name__ == '__main__':
-    ADDA_with_pre()
+    ADDA_position_pointsnet()

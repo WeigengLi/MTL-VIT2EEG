@@ -11,7 +11,7 @@ from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 from models.STL import InceptionViT_pretrained, EEGViT_pretrained_hierachical2, EEGViT_pretrained
 from models.Vit_reconstruct_1116 import ViT_reconstruct_modified
 from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
-from models.MTL_pretrained import ViT_pupil_Cascade
+from models.ViT_ADDA import ViT_pupil_Cascade
 from models.ModelTrainer import *
 
 
@@ -36,13 +36,13 @@ TASKS_DATA = {
 TASKS_TRAINER = {
     SINGLE_TASK: STL_Trainer_with_plot,
     MULTI_TASK_RECON: MTL_RE_Trainer,
-    MULTI_TASK_PUPIL: MTL_PU_Trainer_with_plot,
+    MULTI_TASK_PUPIL: MTL_PU_Trainer_with_plot_sf,
     MULTI_TASK_ADDA: MTL_ADDA_Trainer3
 }
 # endregion
 
 # region Task Config
-DEFAULT_TASK = SINGLE_TASK
+DEFAULT_TASK = MULTI_TASK_PUPIL
 DEFAULT_MODEL = ViT_pupil_Cascade
 NEW_DATA_PATH = './dataset\MTL_pupil_size_std\Position_task_with_dots_synchronized_min.npz'
 NUM_ITER = 3
@@ -50,7 +50,7 @@ NUM_ITER = 3
 
 
 def MTL():
-    specific_task = '3fc'
+    specific_task = '3fc_48step'
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     for weight in [1000]:
@@ -58,12 +58,12 @@ def MTL():
             model = DEFAULT_MODEL()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(
-                optimizer, step_size=6, gamma=0.1)
+                optimizer, step_size=48, gamma=0.1)
             mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer=optimizer, scheduler=scheduler,
                                              batch_size=64, n_epoch=30, weight=weight,
                                              Trainer_name=f'{DEFAULT_TASK}_{specific_task}_{weight}')
             mt.run()
-            #torch.save(mt.model, f'{DEFAULT_TASK}_{specific_task}_{weight}.pth')
+            torch.save(mt.model, f'{DEFAULT_TASK}_{specific_task}_{weight}.pth')
             
 
 def STL():
@@ -80,7 +80,7 @@ def STL():
                                              batch_size=64, n_epoch=30,
                                              Trainer_name=f'{DEFAULT_TASK}_{specific_task}_{weight}')
             mt.run()
-            torch.save(mt.model, f'{DEFAULT_TASK}_{specific_task}_{weight}.pth')
+            torch.save(mt.model, f'{DEFAULT_TASK}_{specific_task}_{weight}_2.pth')
 
 if __name__ == '__main__':
     MTL()

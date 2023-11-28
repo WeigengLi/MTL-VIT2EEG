@@ -13,7 +13,7 @@ from models.Vit_reconstruct_1116 import ViT_reconstruct_modified
 from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import *
-from models.ViT_ADDA import EEGViT_pretrained_129, discriminator_clean
+from models.ViT_ADDA import *
 
 
 
@@ -38,14 +38,14 @@ TASKS_DATA = {
 TASKS_TRAINER = {
     SINGLE_TASK : STL_Trainer,
     MULTI_TASK_RECON : MTL_RE_Trainer,
-    MULTI_TASK_PUPIL : MTL_PU_Trainer,
+    MULTI_TASK_PUPIL : MTL_PU_Trainer_with_plot_sf,
     MULTI_TASK_ADDA : MTL_ADDA_Trainer_with_pre
 }
 # endregion
 
 # region Task Config
-DEFAULT_TASK = MULTI_TASK_ADDA
-DEFAULT_MODEL = EEGViT_pretrained_129
+DEFAULT_TASK = MULTI_TASK_PUPIL
+DEFAULT_MODEL = ViT_pupil_Cascade
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
@@ -64,7 +64,7 @@ def train_adda():
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
         mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                            discriminator = discriminator_clean(),pretrained_model = pretrain_model , batch_size=64, n_epoch=15, 
+                                            model = model , batch_size=64, n_epoch=30, 
                                         Trainer_name=f'MULTI_TASK_ADDA/iter{str(i+1)}')
         mt.train_adda()
 
