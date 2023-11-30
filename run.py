@@ -46,7 +46,7 @@ NUM_ITER = 5
 # endregion
 
 def main():
-    data_path = './dataset/Position_task_with_dots_synchronised_min_5.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
+    data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     for i in range(NUM_ITER):
         model = DEFAULT_MODEL()
