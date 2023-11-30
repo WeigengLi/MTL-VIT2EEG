@@ -14,7 +14,7 @@ from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import *
 from models.ViT_ADDA import *
-from models.pointnet2_cls_ssg import *
+from models.PointT_Discriminator import *
 
 
 # region Global Config
@@ -118,16 +118,34 @@ def ADDA_position_sep():
 def ADDA_position_pointsnet():
     data_path = './dataset/MTL_pupil_size_std/Position_task_with_dots_synchronized_min.npz' 
     Dataset = MTLPupilDataset(data_path)
-
-    for weight in [5000]:
+    feat = 'pointsTransformer'
+    for weight in [1000]:
         for i in range(2):
             model = model=torch.load('MTL_PU_3fc_12step_1000.pth')
-            discriminator = PointNetPlusPlusClassifier(num_class=1)
+            discriminator = PointT_Discriminator(feature_dim = 32, batch_size = 256)
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
             mt = MTL_position_pupil_ADDA_pointnet(model, Dataset, optimizer = optimizer, scheduler = scheduler, discriminator= discriminator,
-                                             batch_size=64, n_epoch=20, weight = weight,
-                                            Trainer_name=f'MULTI_ADDA_stdpupil_position_pointsnet{weight}_test2/iter{str(i+1)}')
+                                             batch_size=256, n_epoch=20, weight = weight,
+                                            Trainer_name=f'MULTI_ADDA_{feat}_{weight}/iter{str(i+1)}')
             mt.run()
+            
+
+def ADDA_position_pointsnet_reg():
+    data_path = './dataset/MTL_pupil_size_std/Position_task_with_dots_synchronized_min.npz' 
+    Dataset = MTLPupilDataset(data_path)
+    feat = 'EEGViT_pretrained_with_point_net'
+    batch_size = 64
+    for weight in [1000]:
+        for i in range(2):
+            model = model=EEGViT_pretrained_with_point_net(batch_size)
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
+            mt = MTL_position_pupil_ADDA_pointnet_revers(model, Dataset, optimizer = optimizer, scheduler = scheduler, 
+                                             batch_size=64, n_epoch=20, weight = weight,
+                                            Trainer_name=f'MULTI_ADDA_{feat}_{weight}/iter{str(i+1)}')
+            mt.run()
+
+
 if __name__ == '__main__':
     ADDA_position_pointsnet()

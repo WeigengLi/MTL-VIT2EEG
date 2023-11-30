@@ -1,3 +1,56 @@
+import torch.nn as nn
+import torch.nn.functional as F
+from pytorch3d.ops import ball_query
+
+class get_model(nn.Module):
+    def __init__(self,num_class,normal_channel=False):
+        super(get_model, self).__init__()
+        in_channel = 6 if normal_channel else 3
+        self.normal_channel = normal_channel
+        # 假设输入点云中只有 64 个点
+        self.sa1 = PointNetSetAbstraction(npoint=32, radius=0.2, nsample=32, in_channel=in_channel, mlp=[64, 64, 128], group_all=False)
+        # 这里可以选择更少的点，比如 32，或者根据实际情况保留 64
+        self.sa2 = PointNetSetAbstraction(npoint=16, radius=0.4, nsample=32, in_channel=128 + 3, mlp=[128, 128, 256], group_all=False)
+
+        self.sa3 = PointNetSetAbstraction(npoint=None, radius=None, nsample=None, in_channel=256 + 3, mlp=[256, 512, 1024], group_all=True)
+        self.fc1 = nn.Linear(1024, 512)
+        self.bn1 = nn.BatchNorm1d(512)
+        self.drop1 = nn.Dropout(0.4)
+        self.fc2 = nn.Linear(512, 256)
+        self.bn2 = nn.BatchNorm1d(256)
+        self.drop2 = nn.Dropout(0.4)
+        self.fc3 = nn.Linear(256, num_class)
+
+    def forward(self, xyz):
+        B, _, _ = xyz.shape
+        if self.normal_channel:
+            norm = xyz[:, 3:, :]
+            xyz = xyz[:, :3, :]
+        else:
+            norm = None
+        l1_xyz, l1_points = self.sa1(xyz, norm)
+        l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
+        l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
+        x = l3_points.view(B, 1024)
+        x = self.drop1(F.relu(self.bn1(self.fc1(x))))
+        x = self.drop2(F.relu(self.bn2(self.fc2(x))))
+        x = self.fc3(x)
+        x = F.log_softmax(x, -1)
+
+
+        return x, l3_points
+
+
+
+class get_loss(nn.Module):
+    def __init__(self):
+        super(get_loss, self).__init__()
+
+    def forward(self, pred, target, trans_feat):
+        total_loss = F.nll_loss(pred, target)
+
+        return total_loss
+
 
 import torch
 import torch.nn as nn
@@ -21,7 +74,7 @@ def square_distance(src, dst):
     """
     Calculate Euclid distance between each two points.
 
-    src^T * dst = xn * xm + yn * ym + zn * zm；
+    src^T * dst = xn * xm + yn * ym + zn * zm;
     sum(src^2, dim=-1) = xn*xn + yn*yn + zn*zn;
     sum(dst^2, dim=-1) = xm*xm + ym*ym + zm*zm;
     dist = (xn - xm)^2 + (yn - ym)^2 + (zn - zm)^2
@@ -95,17 +148,9 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
     Return:
         group_idx: grouped points index, [B, S, nsample]
     """
-    device = xyz.device
-    B, N, C = xyz.shape
-    _, S, _ = new_xyz.shape
-    group_idx = torch.arange(N, dtype=torch.long).to(device).view(1, 1, N).repeat([B, S, 1])
-    sqrdists = square_distance(new_xyz, xyz)
-    group_idx[sqrdists > radius ** 2] = N
-    group_idx = group_idx.sort(dim=-1)[0][:, :, :nsample]
-    group_first = group_idx[:, :, 0].view(B, S, 1).repeat([1, 1, nsample])
-    mask = group_idx == N
-    group_idx[mask] = group_first[mask]
-    return group_idx
+
+    dists, idx, nn = ball_query( p1=new_xyz, p2=xyz, K=nsample,radius = radius)
+    return idx
 
 
 def sample_and_group(npoint, radius, nsample, xyz, points, returnfps=False):
@@ -196,7 +241,9 @@ class PointNetSetAbstraction(nn.Module):
         new_points = new_points.permute(0, 3, 2, 1) # [B, C+D, nsample,npoint]
         for i, conv in enumerate(self.mlp_convs):
             bn = self.mlp_bns[i]
-            new_points =  F.relu(bn(conv(new_points)))
+            a = conv(new_points)
+            a = bn(a)
+            new_points =  F.relu(a)
 
         new_points = torch.max(new_points, 2)[0]
         new_xyz = new_xyz.permute(0, 2, 1)
@@ -314,71 +361,4 @@ class PointNetFeaturePropagation(nn.Module):
             bn = self.mlp_bns[i]
             new_points = F.relu(bn(conv(new_points)))
         return new_points
-
-
-
-
-
-
-
-class PointNetPlusPlusClassifier(nn.Module):
-    def __init__(self, num_class=2, normal_channel=False):
-        super(PointNetPlusPlusClassifier, self).__init__()
-        # 设置输入通道为2
-        in_channel = 2 if not normal_channel else 5  # 假设normal_channel包括2个坐标和3个法线信息
-        self.normal_channel = normal_channel
-
-        # 定义Set Abstraction层
-        self.sa1 = PointNetSetAbstraction(npoint=512, radius=0.2, nsample=32, in_channel=in_channel, mlp=[64, 64, 128], group_all=False)
-        self.sa2 = PointNetSetAbstraction(npoint=128, radius=0.4, nsample=64, in_channel=128 + 3, mlp=[128, 128, 256], group_all=False)
-        self.sa3 = PointNetSetAbstraction(npoint=None, radius=None, nsample=None, in_channel=256 + 3, mlp=[256, 512, 1024], group_all=True)
-
-        # 定义全连接层
-        self.fc1 = nn.Linear(1024, 512)
-        self.bn1 = nn.BatchNorm1d(512)
-        self.drop1 = nn.Dropout(0.4)
-        self.fc2 = nn.Linear(512, 256)
-        self.bn2 = nn.BatchNorm1d(256)
-        self.drop2 = nn.Dropout(0.4)
-        # 输出层改为二分类
-        self.fc3 = nn.Linear(256, num_class)
-
-    def forward(self, xyz):
-        B, _, _ = xyz.shape
-
-        if self.normal_channel:
-            norm = xyz[:, 3:, :]
-            xyz = xyz[:, :3, :]
-        else:
-            norm = None
-        
-        # 通过SA层提取特征
-        l1_xyz, l1_points = self.sa1(xyz, norm)
-        l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
-        l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
-
-        # 通过全连接层处理特征
-        x = l3_points.view(B, 1024)
-        x = self.drop1(F.relu(self.bn1(self.fc1(x))))
-        x = self.drop2(F.relu(self.bn2(self.fc2(x))))
-        x = self.fc3(x)
-        x = torch.sigmoid(x)  # 使用sigmoid激活函数进行二分类
-
-        return x, l3_points
-
-# 实例化模型
-# 假设不使用额外的法线或颜色信息
-model = PointNetPlusPlusClassifier(num_class=2, normal_channel=False)
-
-
-class get_loss(nn.Module):
-    def __init__(self):
-        super(get_loss, self).__init__()
-
-    def forward(self, pred, target, trans_feat):
-        total_loss = F.nll_loss(pred, target)
-
-        return total_loss
-
-
 
