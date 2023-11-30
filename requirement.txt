@@ -5,3 +5,4 @@ transformers
 tqdm
 tensorboard
 jupyter
+einops
