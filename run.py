@@ -14,7 +14,7 @@ from models.ViT_reconstruct_v4 import ViT_reconstruct_v4
 from models.MTL_pretrained import ViT_reconstruct
 from models.ModelTrainer import *
 from models.ViT_ADDA import EEGViT_pretrained_129, discriminator_clean
-
+from models.ViT_reconstruct_v11 import ViT_reconstruct_v11
 
 
 # region Global Config
@@ -44,8 +44,8 @@ TASKS_TRAINER = {
 # endregion
 
 # region Task Config
-DEFAULT_TASK = SINGLE_TASK
-DEFAULT_MODEL = EEGViT_pretrained_129
+DEFAULT_TASK = MULTI_TASK_RECON
+DEFAULT_MODEL = ViT_reconstruct_v11
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
@@ -53,14 +53,14 @@ NUM_ITER = 3
 def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
-    for weight in [10000]:
+    for weight in [100]:
         for i in range(5):
             model = DEFAULT_MODEL()
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
             mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer = optimizer, scheduler = scheduler,
-                                             batch_size=64, n_epoch=30, 
-                                            Trainer_name=f'MULTI_TASK_ADDA_weight{weight}/iter{str(i+1)}')
+                                             batch_size=64, n_epoch=15, 
+                                            Trainer_name=f'{DEFAULT_MODEL.__name__}_weight_{weight}/iter{str(i+1)}', weight=weight)
             mt.run()
 
 if __name__ == '__main__':
