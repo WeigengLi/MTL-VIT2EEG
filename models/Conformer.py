@@ -93,8 +93,8 @@ class PatchEmbedding(nn.Module):
         x = self.shallownet(x)
         x = self.projection(x)
 
-        print("Patch Embedding")
-        print(x.shape)
+        # print("Patch Embedding")
+        # print(x.shape)
 
         return x
 
@@ -126,8 +126,8 @@ class MultiHeadAttention(nn.Module):
         out = rearrange(out, "b h n d -> b n (h d)")
         out = self.projection(out)
 
-        print("Multi Head Attention")
-        print(out.shape)
+        # print("Multi Head Attention")
+        # print(out.shape)
 
         return out
 
@@ -212,10 +212,10 @@ class ClassificationHead(nn.Sequential):
         x = x.contiguous().view(x.size(0), -1)
         out = self.fc(x)
 
-        print("Classification Head")
-        print(out.shape)
+        # print("Classification Head")
+        # print(out.shape)
 
-        return x, out
+        return out
 
 
 class Conformer(nn.Sequential):
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
 
     # Forward pass
-    _, y = model(input_tensor)
+    y = model(input_tensor)
 
     # Print output shapes to verify
     print("Positions Shape:", y.shape)
