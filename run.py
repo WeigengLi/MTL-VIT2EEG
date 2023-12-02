@@ -10,7 +10,7 @@ from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 # TODO: ADD COMMIT about possible models and instructions
 from models.STL import EEGViT_pretrained, InceptionViT_pretrained,EEGViT_pretrained_hierachical
 from models.MTL_pretrained import ViT_reconstruct
-from models.ViT_reconstruct_v12 import ViT_reconstruct_v12
+from models.Spatial_Temporal_Transformer import Spatial_Temporal_Transformer
 from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
 
 
@@ -40,7 +40,7 @@ TASKS_TRAINER = {
 
 # region Task Config
 DEFAULT_TASK = MTL_RE_STR
-DEFAULT_MODEL = ViT_reconstruct_v12
+DEFAULT_MODEL = Spatial_Temporal_Transformer
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
@@ -51,8 +51,9 @@ def main():
     for i in range(NUM_ITER):
         model = DEFAULT_MODEL()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight=100, Trainer_name=f'ViT_STL_v2_{str(i+1)}')
+        # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
+        scheduler = None
+        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight=100, Trainer_name=f'{DEFAULT_MODEL.__name__}_{str(i+1)}')
         mt.run()
 
 if __name__ == '__main__':
