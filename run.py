@@ -40,7 +40,7 @@ TASKS_TRAINER = {
 
 # region Task Config
 DEFAULT_TASK = STL_STR
-DEFAULT_MODEL = Conformer
+DEFAULT_MODEL = EEGViT_pretrained
 NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
@@ -49,7 +49,7 @@ def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     for i in range(NUM_ITER):
-        model = DEFAULT_MODEL(n_classes=2, kernel_size1=25, kernel_size2=129)
+        model = DEFAULT_MODEL()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
         mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, Trainer_name=f'Conformer_{str(i+1)}')
