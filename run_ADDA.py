@@ -148,4 +148,4 @@ def ADDA_position_pointsnet_reg():
 
 
 if __name__ == '__main__':
-    ADDA_position_pointsnet()
+    ADDA_with_pre()

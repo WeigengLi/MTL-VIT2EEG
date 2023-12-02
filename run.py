@@ -50,6 +50,8 @@ NEW_DATA_PATH = False
 NUM_ITER = 3
 # endregion
 
+
+
 def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)

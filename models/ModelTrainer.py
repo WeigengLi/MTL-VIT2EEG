@@ -97,20 +97,22 @@ class ModelTrainer(ABC):
         for epoch in range(self.n_epoch):
             # training stage
             model.train()
+            self.clear_plots()
             loss = self.model_evaluate(TRAIN_STAGE, self.train_loader, epoch)
             self.write_logs(TRAIN_STAGE, loss, epoch)
-
             # Evaluate the model on the validation set
             model.eval()
             with torch.no_grad():
                 # Validate set
                 loss = self.model_evaluate(VAL_STAGE, self.val_loader, epoch)
                 self.write_logs(VAL_STAGE, loss, epoch)
-
+                print(f"Epoch {epoch}, {TEST_STAGE} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
                 # Testset
                 loss = self.model_evaluate(TEST_STAGE, self.test_loader, epoch)
                 self.write_logs(TEST_STAGE, loss, epoch)
 
+                print(f"Epoch {epoch}, {TEST_STAGE} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
+            self.plot(f'Epoch_{epoch}.html')
             if self.scheduler is not None:
                 self.scheduler.step()
         self.writer.close()
@@ -190,105 +192,6 @@ class ModelTrainer(ABC):
         return [tensor.to(device) for tensor in tensors]
 
     # Plotting functions
-    def plot_shear_feature(self, shear_features, domain_labels, save_path):
-        """
-        Plot PCA of normalized shear features with domain labels using Plotly.
-
-        Parameters:
-        - shear_features (torch.Tensor): Tensor containing shear features.
-        - domain_labels (torch.Tensor): Tensor containing domain labels.
-        - save_path (str): Path to save the plot.
-
-        Returns:
-        None
-        """
-
-        # Normalize shear_features
-        shear_features_np = shear_features.cpu().detach().numpy()
-        scaler = StandardScaler()
-        shear_features_normalized = scaler.fit_transform(shear_features_np)
-
-        # Apply PCA
-        n_components = 3
-        pca = PCA(n_components=n_components)
-        shear_features_pca = pca.fit_transform(shear_features_normalized)
-
-        # Calculate the percentage of information in each principal component
-        explained_var_ratio = pca.explained_variance_ratio_
-        info_percentage = [
-            f"{round(ratio * 100, 2)}%" for ratio in explained_var_ratio]
-
-        # Create a DataFrame for Plotly
-        import pandas as pd
-        df = pd.DataFrame(data=shear_features_pca,
-                          columns=['PC1', 'PC2', 'PC3'])
-        df['Domain Labels'] = domain_labels.cpu().detach().numpy()
-
-        # Plotting with Plotly
-        fig = px.scatter_3d(df, x='PC1', y='PC2', z='PC3', color='Domain Labels', symbol='Domain Labels',
-                            labels={'PC1': f'Principal Component 1 ({info_percentage[0]})',
-                                    'PC2': f'Principal Component 2 ({info_percentage[1]})',
-                                    'PC3': f'Principal Component 3 ({info_percentage[2]})'},
-                            title='PCA of Normalized Shear Features with Domain Labels')
-
-        # Check if the directory exists, create it if not
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        # Save the plot as an interactive HTML file
-        fig.write_html(save_path)
-
-    def plot_positions(self, save_path):
-        """
-        Plot PCA of normalized shear features with domain labels using Plotly.
-
-        Parameters:
-        - shear_features (torch.Tensor): Tensor containing shear features.
-        - domain_labels (torch.Tensor): Tensor containing domain labels.
-        - save_path (str): Path to save the plot.
-
-        Returns:
-        None
-        """
-        predictions_np = torch.cat([self.train_results, self.val_results, self.test_results,
-                                    self.train_lables, self.val_lables, self.test_lables]).cpu().detach().numpy()
-        lables = torch.cat([torch.zeros(self.train_results.shape[0]),
-                            torch.ones(self.val_results.shape[0]),
-                            torch.ones(self.test_results.shape[0])*2,
-                            torch.ones(self.train_lables.shape[0])*3,
-                            torch.ones(self.val_lables.shape[0])*4,
-                            torch.ones(self.test_lables.shape[0])*5]).cpu().detach().numpy()
-
-        # Create a DataFrame for Plotly
-        import pandas as pd
-        df = pd.DataFrame(data=predictions_np, columns=['x', 'y'])
-        df['Domain Labels'] = lables
-
-        # 创建一个映射字典
-        label_mapping = {0: 'train_results', 1: 'val_results', 2: 'test_results',
-                         3: 'train_lables', 4: 'val_lables', 5: 'test_lables'}
-
-        # 使用 map 方法应用映射
-        df['Domain Labels'] = df['Domain Labels'].map(label_mapping)
-
-        # 将 'Domain Labels' 列转换为分类数据类型
-        df['Domain Labels'] = df['Domain Labels'].astype('category')
-
-        # Plotting with Plotly
-        fig = px.scatter(df, x='x', y='y', color='Domain Labels', symbol='Domain Labels',
-                         title='domian positions')
-
-        # Check if the directory exists, create it if not
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        # Save the plot as an interactive HTML file
-        fig.write_html(save_path)
-
-        @abstractmethod
-        def model_evaluate(self, stage, data_loader, epoch):
-            '''
-            Core Evaluate should be same for all stage
-            '''
-            pass
 
     def clear_plots(self):
         self.plots = {}
@@ -312,6 +215,8 @@ class ModelTrainer(ABC):
         args:
             plot_name: str, the name of the plot
         '''
+        if not self.plots:
+            return
         from datetime import datetime
         formatted_date = datetime.now().strftime("%y%m%d")
         for plot_name, plot_eles in self.plots.items():
@@ -381,7 +286,6 @@ class MTL_RE_Trainer(ModelTrainer):
         epoch_reconstruction_loss = 0.0
         if stage == TRAIN_STAGE:
             enumerator = tqdm(enumerate(data_loader))
-            self.clear_plots()
         else:
             enumerator = enumerate(data_loader)
         for i, (inputs, targets, *index) in enumerator:
@@ -419,11 +323,6 @@ class MTL_RE_Trainer(ModelTrainer):
                 'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
                 'reconstruction_loss': epoch_reconstruction_loss / len(data_loader)
                 }
-        if stage in [TEST_STAGE, VAL_STAGE]:
-            print(
-                f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
-            if stage == TEST_STAGE:
-                self.plot(f'Epoch_{epoch}.html')
         return loss
 
 
@@ -453,8 +352,13 @@ class MTL_PU_Trainer(ModelTrainer):
             # Compute the outputs and loss for the current batch
             if stage == TRAIN_STAGE:
                 self.optimizer.zero_grad()
-            positions, predict_size = self.model(inputs)
-
+            positions, predict_size, *sf = self.model(inputs)
+            self.save_to_plot_elements('positions', {f'{stage}_predict_positions_pupuil_size': positions ,
+                                                     f'{stage}_lables': targets})
+            self.save_to_plot_elements('positions', {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
+                                                     f'{stage}_lables': targets})
+            self.save_to_plot_elements('positions', {f'{stage}_predict_positions_real_pupuil_size': torch.cat([positions, pupil_size], dim=1) ,
+                                                     f'{stage}_lables': targets})
             position_loss = criterion(positions.squeeze(), targets.squeeze())
             pupil_size_loss = criterion(
                 predict_size.squeeze(), pupil_size.squeeze())
@@ -472,15 +376,14 @@ class MTL_PU_Trainer(ModelTrainer):
             if stage == TRAIN_STAGE and i % 100 == 0:
                 print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
                       f" reconstruction loss: {default_round(pupil_size_loss.item())} RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
-
+                
         loss = {'overall_loss': epoch_loss / len(data_loader),
                 'position_loss': epoch_position_loss / len(data_loader),
                 'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
                 'pupil_size_loss': epoch_pupil_loss / len(data_loader)
                 }
-        if stage in [TEST_STAGE, VAL_STAGE]:
-            print(
-                f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
+
+            
         return loss
 
 
@@ -507,7 +410,8 @@ class STL_Trainer(ModelTrainer):
             if stage == TRAIN_STAGE:
                 self.optimizer.zero_grad()
             outputs = self.model(inputs)
-
+            self.save_to_plot_elements('positions', {f'{stage}_predict_positions': outputs ,
+                                                     f'{stage}_lables': targets})
             # loss = criterion(outputs.squeeze(), targets.squeeze())
             position_loss = criterion(outputs.squeeze(), targets.squeeze())
             # Compute the gradients and update the parameters
@@ -531,233 +435,6 @@ class STL_Trainer(ModelTrainer):
                 f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
         return loss
 
-
-class MTL_PU_Trainer_with_plot(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer', weight=0) -> None:
-        super().__init__(model, Dataset, optimizer,
-                         scheduler, batch_size, n_epoch, Trainer_name)
-        self.weight = weight
-
-    def model_evaluate(self, stage, data_loader, epoch):
-        if stage == TRAIN_STAGE:
-            self.train_results = torch.tensor([]).to(self.device)
-            self.test_results = torch.tensor([]).to(self.device)
-            self.val_results = torch.tensor([]).to(self.device)
-            self.test_lables = torch.tensor([]).to(self.device)
-            self.val_lables = torch.tensor([]).to(self.device)
-            self.train_lables = torch.tensor([]).to(self.device)
-        device = self.device
-        optimizer = self.optimizer
-        criterion = self.criterion
-        epoch_loss = 0.0
-        epoch_position_loss = 0.0
-        epoch_pupil_loss = 0.0
-        if stage == TRAIN_STAGE:
-            enumerator = tqdm(enumerate(data_loader))
-        else:
-            enumerator = enumerate(data_loader)
-        epoch_pred_position = torch.tensor([]).to(self.device)
-        epoch_lables = torch.tensor([]).to(self.device)
-        for i, (inputs, targets, pupil_size, *index) in enumerator:
-            # Move the inputs and targets to the GPU (if available)
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            pupil_size = pupil_size.to(device)
-
-            # Compute the outputs and loss for the current batch
-            if stage == TRAIN_STAGE:
-                self.optimizer.zero_grad()
-            positions, predict_size = self.model(inputs)
-
-            position_loss = criterion(positions.squeeze(), targets.squeeze())
-            pupil_size_loss = criterion(
-                predict_size.squeeze(), pupil_size.squeeze())
-            loss = position_loss + pupil_size_loss * self.weight
-            epoch_pred_position = torch.cat([epoch_pred_position, positions])
-            epoch_lables = torch.cat([epoch_lables, targets])
-            # Compute the gradients and update the parameters
-            if stage == TRAIN_STAGE:
-                loss.backward()
-                optimizer.step()
-            epoch_loss += loss.item()
-            epoch_position_loss += position_loss.item()
-            epoch_pupil_loss += pupil_size_loss.item()
-
-            # Print the loss and accuracy for the current batch
-            if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
-                      f" pupil_size_loss: {default_round(pupil_size_loss.item())} RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
-        if stage == TRAIN_STAGE:
-            self.train_results = epoch_pred_position
-            self.train_lables = epoch_lables
-        if stage == VAL_STAGE:
-            self.val_results = epoch_pred_position
-            self.val_lables = epoch_lables
-            
-        if stage == TEST_STAGE:
-            self.test_results = epoch_pred_position
-            self.test_lables = epoch_lables
-            save_path = f'logs/{self.Trainer_name}/predict_position{epoch}.html'
-            plot_positions(self, save_path)
-
-        loss = {'overall_loss': epoch_loss / len(data_loader),
-                'position_loss': epoch_position_loss / len(data_loader),
-                'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'pupil_size_loss': epoch_pupil_loss / len(data_loader)
-                }
-        if stage in [TEST_STAGE, VAL_STAGE]:
-            print(
-                f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
-        return loss
-
-
-class MTL_PU_Trainer_with_plot_sf(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer', weight=0) -> None:
-        super().__init__(model, Dataset, optimizer,
-                         scheduler, batch_size, n_epoch, Trainer_name)
-        self.weight = weight
-
-    def model_evaluate(self, stage, data_loader, epoch):
-        if stage == TRAIN_STAGE:
-            self.train_results = torch.tensor([]).to(self.device)
-            self.test_results = torch.tensor([]).to(self.device)
-            self.val_results = torch.tensor([]).to(self.device)
-            self.test_lables = torch.tensor([]).to(self.device)
-            self.val_lables = torch.tensor([]).to(self.device)
-            self.train_lables = torch.tensor([]).to(self.device)
-        device = self.device
-        optimizer = self.optimizer
-        criterion = self.criterion
-        epoch_loss = 0.0
-        epoch_position_loss = 0.0
-        epoch_pupil_loss = 0.0
-        if stage == TRAIN_STAGE:
-            enumerator = tqdm(enumerate(data_loader))
-        else:
-            enumerator = enumerate(data_loader)
-        epoch_pred_position = torch.tensor([]).to(self.device)
-        epoch_lables = torch.tensor([]).to(self.device)
-        for i, (inputs, targets, pupil_size, *index) in enumerator:
-            # Move the inputs and targets to the GPU (if available)
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            pupil_size = pupil_size.to(device)
-
-            # Compute the outputs and loss for the current batch
-            if stage == TRAIN_STAGE:
-                self.optimizer.zero_grad()
-            positions, predict_size, sf = self.model(inputs)
-
-            position_loss = criterion(positions.squeeze(), targets.squeeze())
-            pupil_size_loss = criterion(
-                predict_size.squeeze(), pupil_size.squeeze())
-            loss = position_loss + pupil_size_loss * self.weight
-            epoch_pred_position = torch.cat([epoch_pred_position, positions])
-            epoch_lables = torch.cat([epoch_lables, targets])
-            # Compute the gradients and update the parameters
-            if stage == TRAIN_STAGE:
-                loss.backward()
-                optimizer.step()
-            epoch_loss += loss.item()
-            epoch_position_loss += position_loss.item()
-            epoch_pupil_loss += pupil_size_loss.item()
-
-            # Print the loss and accuracy for the current batch
-            if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
-                      f" pupil_size_loss: {default_round(pupil_size_loss.item())} RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
-        if stage == TRAIN_STAGE:
-            self.train_results = epoch_pred_position
-            self.train_lables = epoch_lables
-        if stage == VAL_STAGE:
-            self.val_results = epoch_pred_position
-            self.val_lables = epoch_lables
-        if stage == TEST_STAGE:
-            self.test_results = epoch_pred_position
-            self.test_lables = epoch_lables
-            save_path = f'logs/{self.Trainer_name}/predict_position{epoch}.html'
-            plot_positions(self, save_path)
-
-        loss = {'overall_loss': epoch_loss / len(data_loader),
-                'position_loss': epoch_position_loss / len(data_loader),
-                'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'pupil_size_loss': epoch_pupil_loss / len(data_loader)
-                }
-        if stage in [TEST_STAGE, VAL_STAGE]:
-            print(
-                f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
-        return loss
-
-
-class STL_Trainer_with_plot(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer') -> None:
-        super().__init__(model, Dataset, optimizer,
-                         scheduler, batch_size, n_epoch, Trainer_name)
-
-    def model_evaluate(self, stage, data_loader, epoch):
-        if stage == TRAIN_STAGE:
-            self.train_results = torch.tensor([]).to(self.device)
-            self.test_results = torch.tensor([]).to(self.device)
-            self.val_results = torch.tensor([]).to(self.device)
-            self.test_lables = torch.tensor([]).to(self.device)
-            self.val_lables = torch.tensor([]).to(self.device)
-            self.train_lables = torch.tensor([]).to(self.device)
-        device = self.device
-        optimizer = self.optimizer
-
-        epoch_loss = 0.0
-        epoch_position_loss = 0.0
-
-        enumerator = tqdm(enumerate(data_loader)
-                          ) if stage == TRAIN_STAGE else enumerate(data_loader)
-        criterion = self.criterion
-        epoch_pred_position = torch.tensor([]).to(self.device)
-        epoch_lables = torch.tensor([]).to(self.device)
-        for i, (inputs, targets, *index) in enumerator:
-            # Move the inputs and targets to the GPU (if available)
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            # Compute the outputs and loss for the current batch
-            if stage == TRAIN_STAGE:
-                self.optimizer.zero_grad()
-            outputs = self.model(inputs)
-            epoch_pred_position = torch.cat([epoch_pred_position, outputs])
-            epoch_lables = torch.cat([epoch_lables, targets])
-            # loss = criterion(outputs.squeeze(), targets.squeeze())
-            position_loss = criterion(outputs.squeeze(), targets.squeeze())
-            # Compute the gradients and update the parameters
-            if stage == TRAIN_STAGE:
-                position_loss.backward()
-                optimizer.step()
-            epoch_loss += position_loss.item()
-            epoch_position_loss += position_loss.item()
-
-            # Print the loss and accuracy for the current batch
-            if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
-                      f" RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
-
-        loss = {'overall_loss': epoch_loss / len(data_loader),
-                'position_loss': epoch_position_loss / len(data_loader),
-                'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                }
-
-        if stage == TRAIN_STAGE:
-            self.train_results = epoch_pred_position
-            self.train_lables = epoch_lables
-        if stage == VAL_STAGE:
-            self.val_results = epoch_pred_position
-            self.val_lables = epoch_lables
-        if stage == TEST_STAGE:
-            self.test_results = epoch_pred_position
-            self.test_lables = epoch_lables
-            save_path = f'logs/{self.Trainer_name}/predict_position{epoch}.html'
-            plot_positions(self, save_path)
-
-        if stage in [TEST_STAGE, VAL_STAGE]:
-            print(
-                f"Epoch {epoch}, {stage} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
-        return loss
 
 
 # model和 classifier相同模型和计算图
@@ -1203,7 +880,7 @@ class MTL_ADDA_Trainer_with_pre2(ModelTrainer):
             n_batches = len(source_loader)
             predictions_accuracy = 0.0
             epoch_log_domain_loss = 0.0
-            for i, ((source_x, source_labels, index), (target_x, trage_y, index2)) in tqdm(enumerate(batches), total=n_batches):
+            for i, ((source_x, source_labels, *index), (target_x, trage_y, *index2)) in tqdm(enumerate(batches), total=n_batches):
                 optimizer.zero_grad()
                 x = torch.cat([source_x, target_x])
                 x = x.to(device)
@@ -2981,50 +2658,6 @@ def Cal_RMSE(loss):
 def default_round(a):
     return round(a, 2)
 
-
-def plot_positions_from_input(positions, real_position, domain_labels, save_path):
-    """
-    Plot PCA of normalized shear features with domain labels using Plotly.
-
-    Parameters:
-    - shear_features (torch.Tensor): Tensor containing shear features.
-    - domain_labels (torch.Tensor): Tensor containing domain labels.
-    - save_path (str): Path to save the plot.
-
-    Returns:
-    None
-    """
-    domain_labels = domain_labels.cpu().detach()
-    position_labels = torch.ones(real_position.shape[0]) * 2
-    # Normalize shear_features
-    positions_np = torch.cat([positions, real_position]).cpu().detach().numpy()
-
-    # Create a DataFrame for Plotly
-    import pandas as pd
-    df = pd.DataFrame(data=positions_np, columns=['x', 'y'])
-    df['Domain Labels'] = torch.cat([domain_labels, position_labels]).numpy()
-
-    # Define color mapping for the labels
-    color_discrete_map = {0: 'blue', 1: 'red', 2: 'green'}
-    # 创建一个映射字典
-    label_mapping = {1: 'predict_source',
-                     0: 'predict_target', 2: 'real_source'}
-
-    # 使用 map 方法应用映射
-    df['Domain Labels'] = df['Domain Labels'].map(label_mapping)
-
-    # 将 'Domain Labels' 列转换为分类数据类型
-    df['Domain Labels'] = df['Domain Labels'].astype('category')
-
-    # Plotting with Plotly
-    fig = px.scatter(df, x='x', y='y', color='Domain Labels', symbol='Domain Labels',
-                     title='domian positions', color_discrete_map=color_discrete_map)
-
-    # Check if the directory exists, create it if not
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-    # Save the plot as an interactive HTML file
-    fig.write_html(save_path)
 
 
 def get01(domian, shape, device):
