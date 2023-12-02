@@ -45,9 +45,7 @@ class ViT_STL_v2(nn.Module):
     def forward(self, x):
         x = self.ViT1(x)['last_hidden_state']
         # 1, 1678, 768
-        print(x.shape)
         x = x[:, 1:, :].transpose(1, 2).reshape(x.shape[0], -1, 129, 13)
-        print(x.shape)
         x = self.ViT2(x).logits
 
         return x
