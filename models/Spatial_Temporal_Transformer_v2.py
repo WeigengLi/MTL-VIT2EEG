@@ -37,7 +37,7 @@ class Spatial_Temporal_Transformer_v2(nn.Module):
         self.output_linear = nn.Linear(d_model, input_dim)
 
     def forward(self, x):
-        cls_token = self.cls_token.repeat(x.size(0), 1, 1)
+        cls_token = self.cls_token.repeat(1, x.size(0), 1)
         x = x.squeeze(1).transpose(0, 2).transpose(1, 2)
         x = torch.cat([cls_token, x], dim=0)
         x = self.input_linear(x)
