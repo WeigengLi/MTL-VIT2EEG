@@ -10,7 +10,7 @@ from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 # TODO: ADD COMMIT about possible models and instructions
 from models.STL import EEGViT_pretrained, InceptionViT_pretrained,EEGViT_pretrained_hierachical
 from models.MTL_pretrained import ViT_reconstruct
-from models.Spatial_Temporal_Transformer_v2 import Spatial_Temporal_Transformer_v2
+from models.Spatial_Temporal_Transformer_v3 import Spatial_Temporal_Transformer_v3
 from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
 
 
@@ -40,9 +40,9 @@ TASKS_TRAINER = {
 
 # region Task Config
 DEFAULT_TASK = MTL_RE_STR
-DEFAULT_MODEL = Spatial_Temporal_Transformer_v2
+DEFAULT_MODEL = Spatial_Temporal_Transformer_v3
 NEW_DATA_PATH = False
-NUM_ITER = 3
+NUM_ITER = 1
 # endregion
 
 def main():
