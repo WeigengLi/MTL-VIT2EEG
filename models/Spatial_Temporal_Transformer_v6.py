@@ -103,6 +103,9 @@ class Spatial_Temporal_Transformer_v6(nn.Module):
         #     num_layers=num_encoder_layers
         # )
 
+        # Linear layer to transform spatial_encoder output back to input dimension
+        self.spatial_output_linear = nn.Linear(d_model, max_len)
+
         # Decoder part of the Transformer
         self.decoder = nn.TransformerDecoder(
             nn.TransformerDecoderLayer(d_model=d_model, nhead=num_heads),
@@ -144,6 +147,7 @@ class Spatial_Temporal_Transformer_v6(nn.Module):
 
         # Transpose back to original shape for decoder
         # Shape: [seq_len, batch_size, num_electrodes]
+        x = self.spatial_output_linear(x)
         x = x.transpose(0, 2)
 
         # Branch 1: Predicting eye position
