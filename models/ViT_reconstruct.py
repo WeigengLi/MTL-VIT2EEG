@@ -86,7 +86,7 @@ class ViT_reconstruct_v12(nn.Module):
 
         # Extracting the shared features
         shared_features = output.hidden_states[-1]
-
+        print(shared_features[0].shape)
         # Decoder
         reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 16, 14)
         x_reconstructed = self.dec_block1(reshaped_features)
@@ -96,7 +96,7 @@ class ViT_reconstruct_v12(nn.Module):
         x_reconstructed = self.up(x_reconstructed)
         x_reconstructed = self.tanh(x_reconstructed)
 
-        return positions, x_reconstructed
+        return positions, x_reconstructed, shared_features[0]
 
 
 if __name__ == '__main__':
