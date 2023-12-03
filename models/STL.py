@@ -94,6 +94,40 @@ class EEGViT_pretrained_hierachical(nn.Module):
         return x
 
 
+class EEGViT_pretrained_hierachical2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 256, kernel_size=(1, 24), stride=(1, 24), padding=(0, 2), bias=False)
+        self.conv2 = nn.Conv2d(1, 256, kernel_size=(1, 36), stride=(1, 24), padding=(0, 8), bias=False)
+        self.conv3 = nn.Conv2d(1, 256, kernel_size=(1, 48), stride=(1, 24), padding=(0, 14), bias=False)
+        self.batchnorm1 = nn.BatchNorm2d(768, False)
+        model_name = "google/vit-base-patch16-224"
+        config = transformers.ViTConfig.from_pretrained(model_name)
+        config.update({'num_channels': 768})
+        config.update({'image_size': (129, 21)})
+        config.update({'patch_size': (129, 1)})
+
+        model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
+                                                                       ignore_mismatched_sizes=True)
+        model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(768, 768, kernel_size=(129, 1),
+                                                                           stride=(129, 1),
+                                                                           padding=(0, 0), groups=768)
+        model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 1000, bias=True),
+                                               torch.nn.Dropout(p=0.1),
+                                               torch.nn.Linear(1000, 2, bias=True))
+        self.ViT = model
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.conv2(x)
+        x3 = self.conv3(x)
+        x = torch.cat([x1, x2, x3], dim=1)
+        x = self.batchnorm1(x)
+        x = self.ViT.forward(x).logits
+
+        return x
+    
+
 class DeiT_pretrained(nn.Module):
     def __init__(self):
         super().__init__()
@@ -262,7 +296,7 @@ class ViTBase(nn.Module):
 # Test Codes
 if __name__ == '__main__':
     # Instantiate the model
-    model = EEGViT_pretrained_hierachical()
+    model = EEGViT_pretrained_hierachical2()
 
     # Create a dummy input tensor
     batch_size = 1
