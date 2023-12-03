@@ -86,7 +86,6 @@ class EEGViT_pretrained_129(nn.Module):
         shared_features = output.hidden_states[-1][:, 0]
         return positions, shared_features
     
-
 class ViT_pupil_Cascade(nn.Module):
     def __init__(self):
         super().__init__()
@@ -134,8 +133,6 @@ class ViT_pupil_Cascade(nn.Module):
         combined_features = torch.cat((shared_features, pupil_size), dim=1)
         positions = self.position_predictor(combined_features)
         return positions, pupil_size, shared_features
-
-
 
 
 class EEGViT_pretrained_with_dis(nn.Module):
@@ -304,20 +301,6 @@ class discriminator_position(nn.Module):
             )
     def forward(self, x):
         return self.discriminator(x)
-
-
-class discriminator_PointNet2(nn.Module):
-    def __init__(self, num_points, in_channels=2, num_classes=1):
-        super(discriminator_PointNet2, self).__init__()
-        self.pointnet2 = PointNet2(num_points=num_points, in_channels=in_channels)
-        self.fc1 = nn.Linear(1024, 512)
-        self.fc2 = nn.Linear(512, num_classes)
-
-    def forward(self, x, pos):
-        x = self.pointnet2(x, pos)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
 
 
 class discriminator_regrad(nn.Module):
