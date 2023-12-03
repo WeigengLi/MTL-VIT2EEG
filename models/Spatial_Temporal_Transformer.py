@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+'''
+    Classical Transformer with cos PE
+'''
 
 class Spatial_Temporal_Transformer(nn.Module):
     def __init__(self, input_dim=129, output_dim=2, d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6):

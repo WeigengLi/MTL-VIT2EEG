@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
+'''
+    Replace PE with CLS
+'''
 
 class Spatial_Temporal_Transformer_v2(nn.Module):
     def __init__(self, input_dim=129, output_dim=2, d_model=512, num_heads=8, num_encoder_layers=6,
