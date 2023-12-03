@@ -1,12 +1,11 @@
 
 import plotly.express as px
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from copy import deepcopy
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Subset, ConcatDataset
+from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import numpy as np
@@ -108,11 +107,10 @@ class ModelTrainer(ABC):
                 # Validate set
                 loss = self.model_evaluate(VAL_STAGE, self.val_loader, epoch)
                 self.write_logs(VAL_STAGE, loss, epoch)
-                print(f"Epoch {epoch}, {TEST_STAGE} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
+                print(f"Epoch {epoch}, {VAL_STAGE} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
                 # Testset
                 loss = self.model_evaluate(TEST_STAGE, self.test_loader, epoch)
                 self.write_logs(TEST_STAGE, loss, epoch)
-
                 print(f"Epoch {epoch}, {TEST_STAGE} Loss: {default_round(loss['overall_loss'])}, RMSE(mm): {default_round(loss['position_RMSE'])}")
             self.plot(f'Epoch_{epoch}.html')
             if self.scheduler is not None:
@@ -298,11 +296,11 @@ class MTL_RE_Trainer(ModelTrainer):
 
             # Compute the outputs and loss for the current batch
             if stage == TRAIN_STAGE:
-                self.optimizer.zero_grad()
+                optimizer.zero_grad()
             positions, x_reconstructed, sf = self.model(inputs)
             self.save_to_plot_elements('positions', {f'{stage}_predict_positions': positions ,
                                                      f'{stage}_lables': targets})      
-            self.save_to_plot_elements('shear_feature', {f'{stage}_shear_feature': sf })                        
+            self.save_to_plot_elements('share_feature', {f'{stage}_shear_feature': sf })                        
             position_loss = criterion(positions.squeeze(), targets.squeeze())
             reconstruction_loss = criterion(
                 x_reconstructed.squeeze(), inputs.squeeze())
@@ -357,9 +355,9 @@ class MTL_PU_Trainer(ModelTrainer):
             positions, predict_size, *sf = self.model(inputs)
             self.save_to_plot_elements('positions', {f'{stage}_predict_positions_pupuil_size': positions ,
                                                      f'{stage}_lables': targets})
-            self.save_to_plot_elements('positions', {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
+            self.save_to_plot_elements('positions_pred_pupuil_size', {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
                                                      f'{stage}_lables': targets})
-            self.save_to_plot_elements('positions', {f'{stage}_predict_positions_real_pupuil_size': torch.cat([positions, pupil_size], dim=1) ,
+            self.save_to_plot_elements('positions_real_pupuil_size', {f'{stage}_predict_positions_real_pupuil_size': torch.cat([positions, pupil_size], dim=1) ,
                                                      f'{stage}_lables': targets})
             position_loss = criterion(positions.squeeze(), targets.squeeze())
             pupil_size_loss = criterion(

@@ -21,7 +21,7 @@ add decoder blocks
 '''
 
 
-class ViT_reconstruct_v12(nn.Module):
+class MTLT(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(
@@ -45,26 +45,30 @@ class ViT_reconstruct_v12(nn.Module):
                                                                            padding=(0, 0), groups=256)
         model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 512, bias=True),
                                                torch.nn.Dropout(p=0.5),
-                                               torch.nn.Linear(512, 256, bias=True),
+                                               torch.nn.Linear(
+                                                   512, 256, bias=True),
                                                torch.nn.Dropout(p=0.5),
                                                torch.nn.Linear(256, 2, bias=True))
         self.ViT = model
 
         # Decoder
         self.dec_block1 = nn.Sequential(
-            nn.ConvTranspose2d(768, 512, (1, 36), stride=(1, 2), padding=(0, 1)),
+            nn.ConvTranspose2d(768, 512, (1, 36),
+                               stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(512),
             nn.ReLU(True)
         )
 
         self.dec_block2 = nn.Sequential(
-            nn.ConvTranspose2d(512, 256, (8, 1), stride=(2, 1), padding=(1, 0)),
+            nn.ConvTranspose2d(
+                512, 256, (8, 1), stride=(2, 1), padding=(1, 0)),
             nn.InstanceNorm2d(256),
             nn.ReLU(True)
         )
 
         self.dec_block3 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, (1, 36), stride=(1, 2), padding=(0, 1)),
+            nn.ConvTranspose2d(256, 128, (1, 36),
+                               stride=(1, 2), padding=(0, 1)),
             nn.InstanceNorm2d(128),
             nn.ReLU(True)
         )
@@ -86,9 +90,10 @@ class ViT_reconstruct_v12(nn.Module):
 
         # Extracting the shared features
         shared_features = output.hidden_states[-1]
-        print(shared_features[0].shape)
+
         # Decoder
-        reshaped_features = shared_features[:, 1:, :].transpose(1, 2).reshape(shared_features.shape[0], -1, 16, 14)
+        reshaped_features = shared_features[:, 1:, :].transpose(
+            1, 2).reshape(shared_features.shape[0], -1, 16, 14)
         x_reconstructed = self.dec_block1(reshaped_features)
         x_reconstructed = self.dec_block2(x_reconstructed)
         x_reconstructed = self.dec_block3(x_reconstructed)
@@ -96,12 +101,12 @@ class ViT_reconstruct_v12(nn.Module):
         x_reconstructed = self.up(x_reconstructed)
         x_reconstructed = self.tanh(x_reconstructed)
 
-        return positions, x_reconstructed, shared_features[0]
+        return positions, x_reconstructed, shared_features[:, 0]
 
 
 if __name__ == '__main__':
     # Instantiate the model
-    model = ViT_reconstruct_v12()
+    model = MTLT()
 
     # Create a dummy input tensor
     batch_size = 1
