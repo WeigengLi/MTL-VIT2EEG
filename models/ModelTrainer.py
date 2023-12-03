@@ -81,7 +81,7 @@ class ModelTrainer(ABC):
             log_dir=f'{LOG_DIR}/{formatted_date}/{self.Trainer_name}')
         self.device = device
         self.criterion = nn.MSELoss()
-        self.criterion.to(self.device)
+        self.criterion = self.criterion.to(self.device)
 
     def write_logs(self, stage, losses, epoch):
         for key, value in losses.items():
