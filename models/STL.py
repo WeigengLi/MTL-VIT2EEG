@@ -1,9 +1,7 @@
 import torch
 import transformers
 from transformers import ViTModel
-import torch
 from torch import nn
-import transformers
 
 
 class InceptionModule(nn.Module):
