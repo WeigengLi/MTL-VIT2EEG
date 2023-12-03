@@ -2,21 +2,16 @@ import torch
 import torch.nn as nn
 
 '''
-    Have both CLS and PE
-    Transpose the input: seq_len = 129, word_embeddings = 500
+    Have only learnable PE
 '''
 
-
 class Spatial_Temporal_Transformer_v4(nn.Module):
-    def __init__(self, input_dim=500, max_len=129, output_dim=2, d_model=512, num_heads=8, num_encoder_layers=6,
+    def __init__(self, input_dim=129, max_len=500, output_dim=2, d_model=512, num_heads=8, num_encoder_layers=6,
                  num_decoder_layers=6):
         super(Spatial_Temporal_Transformer_v4, self).__init__()
 
-        # CLS token
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, d_model))
-
         # Position Embeddings
-        self.pos_embedding = nn.Parameter(torch.randn(1 + max_len, 1, d_model))
+        self.pos_embedding = nn.Parameter(torch.randn(max_len, 1, d_model))
 
         # Linear layer to transform input dimension
         self.input_linear = nn.Linear(input_dim, d_model)
@@ -45,12 +40,8 @@ class Spatial_Temporal_Transformer_v4(nn.Module):
 
     def forward(self, x):
         # Preprocess input
-        x = x.squeeze(1).transpose(0, 1)
+        x = x.squeeze(1).transpose(0, 2).transpose(1, 2)
         x = self.input_linear(x)
-
-        # Add CLS token
-        cls_token = self.cls_token.repeat(1, x.size(1), 1)
-        x = torch.cat([cls_token, x], dim=0)
 
         # Add positional encoding
         pos_embedding = self.pos_embedding.repeat(1, x.size(1), 1)
@@ -60,13 +51,12 @@ class Spatial_Temporal_Transformer_v4(nn.Module):
         x = self.encoder(x)
 
         # Branch 1: Predicting eye position
-        cls_output = x[0, :, :]
-        position_pred = self.predictor(cls_output)
+        position_pred = self.predictor(x[-1, :, :])
 
         # Branch 2: Reconstructing input
         reconstructed_x = self.decoder(x, x)
         reconstructed_x = self.output_linear(reconstructed_x)
-        reconstructed_x = reconstructed_x[1:, :, :].transpose(0, 1).unsqueeze(1)
+        reconstructed_x = reconstructed_x.transpose(1, 2).transpose(0, 2).unsqueeze(1)
 
         return position_pred, reconstructed_x
 
