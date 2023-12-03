@@ -71,8 +71,8 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         device = x.device
-        y = self.encoding[:, :x.size(1)].to(device)
-        return x + y
+        encoding = self.encoding.transpose(0, 1).repeat(1, x.size(1), 1).to(device)
+        return x + encoding
 
 
 if __name__ == '__main__':
