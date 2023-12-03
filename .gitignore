@@ -18,5 +18,5 @@ __pycache__/
 !dataset/preparator
 logs/*
 !.gitkeep
-# code from other paper will be cited
+
 models/examplecode/*

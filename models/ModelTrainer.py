@@ -64,6 +64,8 @@ class ModelTrainer(ABC):
             test, batch_size=batch_size, drop_last=drop_last)
 
         if torch.cuda.is_available():
+            # Set the random seed
+            torch.manual_seed(0)
             gpu_id = 0  # Change this to the desired GPU ID if you have multiple GPUs
             torch.cuda.set_device(gpu_id)
             device = torch.device(f"cuda:{gpu_id}")
@@ -408,7 +410,7 @@ class STL_Trainer(ModelTrainer):
             targets = targets.to(device)
             # Compute the outputs and loss for the current batch
             if stage == TRAIN_STAGE:
-                self.optimizer.zero_grad()
+                optimizer.zero_grad()
             outputs = self.model(inputs)
             self.save_to_plot_elements('positions', {f'{stage}_predict_positions': outputs ,
                                                      f'{stage}_lables': targets})
