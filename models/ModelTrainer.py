@@ -259,7 +259,7 @@ class ModelTrainer(ABC):
                                  color='Labels', symbol='Labels')
 
             elif eles.shape[1] == 3:
-                fig = px.scatter(df, x='x', y='y', z='z',
+                fig = px.scatter_3d(df, x='x', y='y', z='z',
                                  color='Labels', symbol='Labels')   
             else:
                 # Plotting with Plotly
@@ -335,7 +335,7 @@ class MTL_PU_Trainer(ModelTrainer):
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
-        criterion = self.criterion
+        criterion = nn.MSELoss().to(device)
         epoch_loss = 0.0
         epoch_position_loss = 0.0
         epoch_pupil_loss = 0.0
@@ -353,12 +353,10 @@ class MTL_PU_Trainer(ModelTrainer):
             if stage == TRAIN_STAGE:
                 self.optimizer.zero_grad()
             positions, predict_size, *sf = self.model(inputs)
-            self.save_to_plot_elements('positions', {f'{stage}_predict_positions_pupuil_size': positions ,
-                                                     f'{stage}_lables': targets})
             self.save_to_plot_elements('positions_pred_pupuil_size', {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
-                                                     f'{stage}_lables': targets})
-            self.save_to_plot_elements('positions_real_pupuil_size', {f'{stage}_predict_positions_real_pupuil_size': torch.cat([positions, pupil_size], dim=1) ,
-                                                     f'{stage}_lables': targets})
+                                                     f'{stage}_lables': torch.cat([targets, pupil_size], dim=1)})
+            a = torch.cat([positions, predict_size], dim=1)
+
             position_loss = criterion(positions.squeeze(), targets.squeeze())
             pupil_size_loss = criterion(
                 predict_size.squeeze(), pupil_size.squeeze())

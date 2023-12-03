@@ -108,49 +108,8 @@ class ViT_pupil(nn.Module):
         # Position Prediction
         pupil_size_prediction = self.pupil_size(shared_features[:, 0])
 
-        return positions, pupil_size_prediction
+        return positions, pupil_size_prediction,shared_features[:, 0]
 
-
-class ViT_hierachical_pupil_Cascade(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 256, kernel_size=(1, 36), stride=(1, 36), padding=(0, 2), bias=False)
-        self.conv2 = nn.Conv2d(1, 256, kernel_size=(1, 48), stride=(1, 36), padding=(0, 8), bias=False)
-        self.conv3 = nn.Conv2d(1, 256, kernel_size=(1, 60), stride=(1, 36), padding=(0, 14), bias=False)
-        self.batchnorm1 = nn.BatchNorm2d(768, False)
-        model_name = "google/vit-base-patch16-224"
-        config = transformers.ViTConfig.from_pretrained(model_name)
-        config.update({'num_channels': 768})
-        config.update({'image_size': (129, 14)})
-        config.update({'patch_size': (129, 1)})
-
-        model = transformers.ViTForImageClassification.from_pretrained(model_name, config=config,
-                                                                       ignore_mismatched_sizes=True)
-        model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(768, 768, kernel_size=(129, 1),
-                                                                           stride=(129, 1),
-                                                                           padding=(0, 0), groups=768)
-         # Position Prediction Branch
-        self.position_predictor = nn.Sequential(
-                                nn.Linear(769 , 1000, bias=True),
-                                nn.Dropout(p=0.1),
-                                nn.Linear(1000, 2, bias=True))
-        self.model = model.vit
-
-    def forward(self, x, pupil_size_prediction):
-       
-        x1 = self.conv1(x)
-        x2 = self.conv2(x)
-        x3 = self.conv3(x)
-        
-        x = torch.cat([x1, x2, x3], dim=1)
-        x = self.batchnorm1(x)
-        
-        output = self.model(x,output_hidden_states=True)
-        shared_features = output.hidden_states[-1][:, 0]
-        
-        combined_features = torch.cat((shared_features, pupil_size_prediction), dim=1)
-        positions = self.position_predictor(combined_features)
-        return positions, pupil_size_prediction
 
 
 
