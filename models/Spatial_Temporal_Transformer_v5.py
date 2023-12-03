@@ -14,7 +14,7 @@ class Spatial_Temporal_Transformer_v5(nn.Module):
         super(Spatial_Temporal_Transformer_v5, self).__init__()
 
         # Positional encoding
-        self.pos_encoder = PositionalEncoding(d_model)
+        self.pos_encoder = PositionalEncoding(d_model, max_len=max_len)
 
         # Linear layer to transform input dimension
         self.input_linear = nn.Linear(input_dim, d_model)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     model = Spatial_Temporal_Transformer_v5()
 
     # Create a dummy input tensor
-    batch_size = 2
+    batch_size = 1
     input_tensor = torch.randn(batch_size, 1, 129, 500)  # Using random values
 
     # Forward pass

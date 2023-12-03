@@ -6,27 +6,29 @@ import numpy as np
     Classical Transformer with cos PE
 '''
 
+
 class Spatial_Temporal_Transformer(nn.Module):
-    def __init__(self, input_dim=129, output_dim=2, d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6):
+    def __init__(self, input_dim=129, max_len=500, output_dim=2, d_model=512, num_heads=8, num_encoder_layers=6,
+                 num_decoder_layers=6):
         super(Spatial_Temporal_Transformer, self).__init__()
+
+        # Positional encoding
+        self.pos_encoder = PositionalEncoding(d_model, max_len=max_len)
 
         # Linear layer to transform input dimension
         self.input_linear = nn.Linear(input_dim, d_model)
 
         # Encoder part of the Transformer
         self.encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead),
+            nn.TransformerEncoderLayer(d_model=d_model, nhead=num_heads),
             num_layers=num_encoder_layers
         )
 
         # Decoder part of the Transformer
         self.decoder = nn.TransformerDecoder(
-            nn.TransformerDecoderLayer(d_model=d_model, nhead=nhead),
+            nn.TransformerDecoderLayer(d_model=d_model, nhead=num_heads),
             num_layers=num_decoder_layers
         )
-
-        # Positional encoding
-        self.pos_encoder = PositionalEncoding(d_model)
 
         # Predictor for eye position
         self.predictor = torch.nn.Sequential(torch.nn.Linear(d_model, d_model // 2, bias=True),
@@ -39,8 +41,11 @@ class Spatial_Temporal_Transformer(nn.Module):
         self.output_linear = nn.Linear(d_model, input_dim)
 
     def forward(self, x):
+        # Preprocess input
         x = x.squeeze(1).transpose(0, 2).transpose(1, 2)
         x = self.input_linear(x)
+
+        # Add positional encoding
         x = self.pos_encoder(x)
 
         # Encoder output
@@ -52,8 +57,6 @@ class Spatial_Temporal_Transformer(nn.Module):
         # Branch 2: Reconstructing input
         reconstructed_x = self.decoder(x, x)
         reconstructed_x = self.output_linear(reconstructed_x)
-
-        # Reshape reconstructed output to match input shape
         reconstructed_x = reconstructed_x.transpose(1, 2).transpose(0, 2).unsqueeze(1)
 
         return position_pred, reconstructed_x
