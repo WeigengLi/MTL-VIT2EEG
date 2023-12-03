@@ -11,6 +11,7 @@ from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 from models.STL import EEGViT_pretrained, InceptionViT_pretrained,EEGViT_pretrained_hierachical2
 from models.ViT_reconstruct_v7 import ViT_reconstruct_v7
 from models.MTL_pretrained import ViT_reconstruct
+
 from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
 
 
@@ -39,15 +40,18 @@ TASKS_TRAINER = {
 # endregion
 
 # region Task Config
+
 DEFAULT_TASK = MULTI_TASK_RECON
 DEFAULT_MODEL = ViT_reconstruct_v7
 NEW_DATA_PATH = False
 NUM_ITER = 3
+
 # endregion
 
 def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
+
     for weight in [100]:
         for i in range(5):
             model = DEFAULT_MODEL()
