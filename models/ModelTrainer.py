@@ -280,7 +280,7 @@ class MTL_RE_Trainer(ModelTrainer):
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
-        criterion = self.criterion
+        criterion = nn.MSELoss().to(device)
         epoch_loss = 0.0
         epoch_position_loss = 0.0
         epoch_reconstruction_loss = 0.0

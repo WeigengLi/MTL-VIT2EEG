@@ -3,8 +3,8 @@ import torch
 from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 # TODO: ADD COMMIT about possible models and instructions
 
-from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer3, MTL_PU_Trainer
-from models.MTLT import MTLT
+from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
+from models.MTLT import MTLT, MTLT_raw
 
 # region Global Config
 SINGLE_TASK  = 'STL'
@@ -26,10 +26,17 @@ TASKS_DATA = {
 }
 TASKS_TRAINER = {
     SINGLE_TASK : STL_Trainer,
-    MULTI_TASK_RECON : MTL_RE_Trainer3,
+    MULTI_TASK_RECON : MTL_RE_Trainer,
     MULTI_TASK_PUPIL : MTL_PU_Trainer,
 }
+
+MTL_WEIGHT = {
+    MTLT.__name__ : 100,
+    MTLT_raw.__name__ : 120
+}
+
 # endregion
+
 
 # region Task Config
 
@@ -45,11 +52,13 @@ def main():
     data_path = './dataset/Position_task_with_dots_synchronised_min.npz' if not NEW_DATA_PATH else NEW_DATA_PATH
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     model = DEFAULT_MODEL()
+    model_name = DEFAULT_MODEL.__name__
+    weight = MTL_WEIGHT[model_name]
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
 
-    mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=30, weight = 100,
-                                    Trainer_name=f'{DEFAULT_MODEL.__name__}_ifstep6_adoption')
+    mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight = 100,
+                                    Trainer_name=f'{model_name}_weight_{weight}')
     mt.run()
 
 if __name__ == '__main__':
