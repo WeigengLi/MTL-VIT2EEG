@@ -34,16 +34,19 @@ For more details about EEGEyeNet dataset, please refer to ["EEGEyeNet: a Simulta
 3. Run dataset "./preparator/tasks.py"
 
 ## Installation
-
-To install requirements
-```bash
-pip3 install -r requirements.txt 
-```
+We use Python 3.8, Cuda 12.1
 
 To install Pytorch requirements
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
+
+To install requirements
+```bash
+pip3 install -r requirement.txt 
+```
+
+
 
 For other installation details and different cuda versions, visit [pytorch.org](https://pytorch.org/get-started/locally/).
 
@@ -73,7 +76,7 @@ Our model achieves the following performance:
 | EEGNet             | 81.7                             |
 | InceptionTime      | 70.8                             |
 | Xception           | 78.7                             |
-| MTL-ViT(Ours)      | 55.0                             |
+| MTLT(Ours)         | 54.7                             |
 
 ## Citation
 We reused most codes from 

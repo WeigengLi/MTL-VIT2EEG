@@ -6,3 +6,5 @@ tqdm
 tensorboard
 jupyter
 einops
+plotly
+scikit-learn
