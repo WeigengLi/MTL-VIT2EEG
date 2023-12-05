@@ -5,6 +5,12 @@ from dataset.Datasets import EEGEyeNetDataset, MTLPupilDataset
 
 from models.ModelTrainer import STL_Trainer, MTL_RE_Trainer, MTL_PU_Trainer
 from models.MTLT import MTLT, MTLT_raw
+from models.MTLT_v13 import MTLT_v13
+from models.MTLT_v12 import MTLT_v12
+from models.MTLT_v10 import MTLT_v10
+from models.MTLT_v11 import MTLT_v11
+from models.MTLT_v14 import MTLT_v14
+from models.STL import EEGViT_pretrained, EEGViT_raw
 
 # region Global Config
 SINGLE_TASK  = 'STL'
@@ -42,7 +48,7 @@ MTL_WEIGHT = {
 
 DEFAULT_TASK = MULTI_TASK_RECON
 
-DEFAULT_MODEL = MTLT
+DEFAULT_MODEL = MTLT_v14
 
 NEW_DATA_PATH = False
 # endregion
@@ -53,12 +59,12 @@ def main():
     Dataset = TASKS_DATA[DEFAULT_TASK](data_path)
     model = DEFAULT_MODEL()
     model_name = DEFAULT_MODEL.__name__
-    weight = MTL_WEIGHT[model_name]
+    weight = MTL_WEIGHT.get(model_name, 0)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
 
-    mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight = 100,
-                                    Trainer_name=f'{model_name}_weight_{weight}')
+    mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=32, n_epoch=15, weight = 100,
+                                    Trainer_name=f'{model_name}_num_layer_6_weight_100_wrong_criteria')
     mt.run()
 
 if __name__ == '__main__':

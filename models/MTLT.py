@@ -88,12 +88,14 @@ class MTLT(nn.Module):
                                                                        ignore_mismatched_sizes=True)
         model.vit.embeddings.patch_embeddings.projection = torch.nn.Conv2d(256, 768, kernel_size=(8, 1), stride=(8, 1),
                                                                            padding=(0, 0), groups=256)
-        model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 512, bias=True),
-                                               torch.nn.Dropout(p=0.5),
-                                               torch.nn.Linear(
-                                                   512, 256, bias=True),
-                                               torch.nn.Dropout(p=0.5),
-                                               torch.nn.Linear(256, 2, bias=True))
+        # model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 512, bias=True),
+        #                                        torch.nn.Dropout(p=0.5),
+        #                                        torch.nn.Linear( 512, 256, bias=True),
+        #                                        torch.nn.Dropout(p=0.5),
+        #                                        torch.nn.Linear(256, 2, bias=True))
+        model.classifier = torch.nn.Sequential(torch.nn.Linear(768, 1000, bias=True),
+                                               torch.nn.Dropout(p=0.1),
+                                               torch.nn.Linear(1000, 2, bias=True))
         self.ViT = model
 
         # Decoder

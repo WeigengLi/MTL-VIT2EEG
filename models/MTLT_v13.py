@@ -94,7 +94,7 @@ class MTLT_v13(nn.Module):
         x_reconstructed = self.up(x_reconstructed)
         x_reconstructed = self.tanh(x_reconstructed)
 
-        return positions, x_reconstructed
+        return positions, x_reconstructed, shared_features[:,0]
 
 
 if __name__ == '__main__':
