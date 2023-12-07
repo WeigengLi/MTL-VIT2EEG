@@ -1,4 +1,5 @@
 
+import random
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -61,17 +62,17 @@ class ModelTrainer(ABC):
             val, batch_size=batch_size, drop_last=drop_last)
         self.test_loader = DataLoader(
             test, batch_size=batch_size, drop_last=drop_last)
-
         if torch.cuda.is_available():
             # Set the random seed
-            torch.manual_seed(0)
             gpu_id = 0  # Change this to the desired GPU ID if you have multiple GPUs
             torch.cuda.set_device(gpu_id)
             device = torch.device(f"cuda:{gpu_id}")
+        
         else:
             device = torch.device("cpu")
         if torch.cuda.device_count() > 1:
             model = nn.DataParallel(model)  # Wrap the model with DataParallel
+        self.setup_seed(1)
         print(f"Using Device : {torch.cuda.get_device_name()}")
         model = model.to(device)
         # Initialize tensorboard
@@ -190,6 +191,15 @@ class ModelTrainer(ABC):
         device = self.device if device is None else device
 
         return [tensor.to(device) for tensor in tensors]
+ 
+    
+    def setup_seed(self,seed):
+        if seed==False: return
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
 
     # Plotting functions
 
