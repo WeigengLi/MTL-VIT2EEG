@@ -9,7 +9,7 @@ ViT encoder + Transformer Decoder
 
 
 class MTLT_v14(nn.Module):
-    def __init__(self, num_layers=12):
+    def __init__(self, num_layers=6):
         super().__init__()
 
         # Using a pre-trained ViT model as the encoder

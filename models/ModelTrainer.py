@@ -1,4 +1,5 @@
 
+import random
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -61,17 +62,17 @@ class ModelTrainer(ABC):
             val, batch_size=batch_size, drop_last=drop_last)
         self.test_loader = DataLoader(
             test, batch_size=batch_size, drop_last=drop_last)
-
         if torch.cuda.is_available():
             # Set the random seed
-            torch.manual_seed(0)
             gpu_id = 0  # Change this to the desired GPU ID if you have multiple GPUs
             torch.cuda.set_device(gpu_id)
             device = torch.device(f"cuda:{gpu_id}")
+        
         else:
             device = torch.device("cpu")
         if torch.cuda.device_count() > 1:
             model = nn.DataParallel(model)  # Wrap the model with DataParallel
+        self.setup_seed(1)
         print(f"Using Device : {torch.cuda.get_device_name()}")
         model = model.to(device)
         # Initialize tensorboard
@@ -190,6 +191,15 @@ class ModelTrainer(ABC):
         device = self.device if device is None else device
 
         return [tensor.to(device) for tensor in tensors]
+ 
+    
+    def setup_seed(self,seed):
+        if seed==False: return
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
 
     # Plotting functions
 
@@ -318,137 +328,6 @@ class MTL_RE_Trainer(ModelTrainer):
                 print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
                       f" reconstruction loss: {default_round(reconstruction_loss.item())} RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
 
-        loss = {'overall_loss': epoch_loss / len(data_loader),
-                'position_loss': epoch_position_loss / len(data_loader),
-                'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'reconstruction_loss': epoch_reconstruction_loss / len(data_loader)
-                }
-        return loss
-
-# adoption 一起做， 太慢了
-class MTL_RE_Trainer2(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15,
-                 Trainer_name='Trainer', weight=0) -> None:
-        super().__init__(model, Dataset, optimizer, scheduler, batch_size, 
-                         n_epoch, Trainer_name, weight=weight,)
-        self.target_dataloader = DataLoader( ConcatDataset([self.test_loader.dataset,
-                                                            self.val_loader.dataset]), batch_size=batch_size)
-
-    def model_evaluate(self, stage, data_loader, epoch):
-        device = self.device
-        optimizer = self.optimizer
-        criterion = self.criterion
-        epoch_loss = 0.0
-        epoch_position_loss = 0.0
-        epoch_reconstruction_loss = 0.0
-        if stage == TRAIN_STAGE:
-            batches = zip(self.test_loader,  cycle(self.target_dataloader))
-            enumerator = tqdm(enumerate(batches))
-        else:
-            enumerator = enumerate(data_loader)
-        for i, ((inputs, targets, *index), (inputs_test, *index)) in enumerator:
-
-            # Move the inputs and targets to the GPU (if available)
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            inputs_test = inputs_test.to(device)
-            # Compute the outputs and loss for the current batch
-            if stage == TRAIN_STAGE:
-                optimizer.zero_grad()
-            positions, x_reconstructed, sf = self.model(inputs)
-            
-            _,test_reconstructed,sf_test = self.model(inputs_test)
-                        
-            position_loss = criterion(positions.squeeze(), targets.squeeze())
-    
-            reconstruction_loss = criterion(
-                x_reconstructed.squeeze(), inputs.squeeze())
-            reconstruction_loss_test = criterion(
-                test_reconstructed.squeeze(), inputs_test.squeeze())
-            loss = position_loss + self.weight * (reconstruction_loss+reconstruction_loss_test)
-            # Compute the gradients and update the parameters
-            if stage == TRAIN_STAGE:
-                loss.backward()
-                optimizer.step()
-            epoch_loss += loss.item()
-            epoch_position_loss += position_loss.item()
-            epoch_reconstruction_loss += reconstruction_loss.item()
-
-            # Print the loss and accuracy for the current batch
-            if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
-                      f" reconstruction loss: {default_round(reconstruction_loss.item())} RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
-
-        loss = {'overall_loss': epoch_loss / len(data_loader),
-                'position_loss': epoch_position_loss / len(data_loader),
-                'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
-                'reconstruction_loss': epoch_reconstruction_loss / len(data_loader)
-                }
-        return loss
-
-# adoption 分开坐
-class MTL_RE_Trainer3(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15,
-                 Trainer_name='Trainer', weight=0) -> None:
-        super().__init__(model, Dataset, optimizer, scheduler, batch_size, 
-                         n_epoch, Trainer_name, weight=weight,)
-
-    def model_evaluate(self, stage, data_loader, epoch):
-        device = self.device
-        optimizer = self.optimizer
-        criterion = self.criterion
-        epoch_loss = 0.0
-        epoch_position_loss = 0.0
-        epoch_reconstruction_loss = 0.0
-        if stage == TRAIN_STAGE:
-            enumerator = tqdm(enumerate(data_loader))
-        else:
-            enumerator = enumerate(data_loader)
-        for i, (inputs, targets, *index) in enumerator:
-
-            # Move the inputs and targets to the GPU (if available)
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-
-            # Compute the outputs and loss for the current batch
-            if stage == TRAIN_STAGE:
-                optimizer.zero_grad()
-            positions, x_reconstructed, sf = self.model(inputs)
-            self.save_to_plot_elements('positions', {f'{stage}_predict_positions': positions ,
-                                                     f'{stage}_lables': targets})      
-            self.save_to_plot_elements('share_feature', {f'{stage}_shear_feature': sf })                        
-            position_loss = criterion(positions.squeeze(), targets.squeeze())
-            reconstruction_loss = criterion(
-                x_reconstructed.squeeze(), inputs.squeeze())
-            loss = position_loss + self.weight * reconstruction_loss
-            # Compute the gradients and update the parameters
-            if stage == TRAIN_STAGE:
-                loss.backward()
-                optimizer.step()
-            epoch_loss += loss.item()
-            epoch_position_loss += position_loss.item()
-            epoch_reconstruction_loss += reconstruction_loss.item()
-
-            # Print the loss and accuracy for the current batch
-            if stage == TRAIN_STAGE and i % 100 == 0:
-                print(f"Epoch {epoch}, Batch {i}, position loss: {position_loss.item()}" +
-                      f" reconstruction loss: {default_round(reconstruction_loss.item())} RMSE(mm): {default_round(Cal_RMSE(position_loss.item()))}")
-        if stage == TRAIN_STAGE and epoch >6:
-            print('adoption on test set')
-            for i, (inputs, *index) in tqdm(enumerate(self.test_loader)):
-                # Move the inputs and targets to the GPU (if available)
-                inputs = inputs.to(device)
-                # Compute the outputs and loss for the current batch
-                optimizer.zero_grad()
-                _, x_reconstructed, sf = self.model(inputs)
-                reconstruction_loss = criterion(
-                    x_reconstructed.squeeze(), inputs.squeeze())
-                loss = self.weight * reconstruction_loss
-                # Compute the gradients and update the parameters
-                loss.backward()
-                optimizer.step()
-            
-        
         loss = {'overall_loss': epoch_loss / len(data_loader),
                 'position_loss': epoch_position_loss / len(data_loader),
                 'position_RMSE': Cal_RMSE(epoch_position_loss / len(data_loader)),
