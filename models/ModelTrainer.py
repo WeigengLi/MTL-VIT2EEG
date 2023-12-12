@@ -24,15 +24,20 @@ VAL_STAGE = 'val'
 
 
 class ModelTrainer(ABC):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer', weight = 0) -> None:
-        self.model = model
-        self.Dataset = Dataset
-        self.optimizer = optimizer
-        self.scheduler = scheduler
-        self.batch_size = batch_size
-        self.n_epoch = n_epoch
-        self.Trainer_name = Trainer_name
-        self.weight = weight
+    def __init__(self, config) -> None:
+        self.model = config['model']
+        self.Dataset = config['Dataset']
+        self.optimizer = config['optimizer']
+        self.scheduler = config.get('scheduler', None)
+        self.batch_size = config.get('batch_size', 64)
+        self.n_epoch = config.get('n_epoch', 15)
+        self.weight = config.get('weight', None)
+        suffix = config.get('suffix', '')
+        if suffix != '':
+            suffix = '_'+suffix
+        if self.weight:
+            suffix = f'_weight{self.weight}_{suffix}'
+        self.Trainer_name = f'{self.model.__class__.__name__}{suffix}'
         self.plots = {}
         self.initialization()
 
@@ -282,11 +287,8 @@ class ModelTrainer(ABC):
 
 
 class MTL_RE_Trainer(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15,
-                 Trainer_name='Trainer', weight=0) -> None:
-        super().__init__(model, Dataset, optimizer, scheduler, batch_size, 
-                         n_epoch, Trainer_name, weight=weight,)
-
+    def __init__(self, config) -> None:
+        super().__init__(config)
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
@@ -336,11 +338,8 @@ class MTL_RE_Trainer(ModelTrainer):
         return loss
 
 class MTL_PU_Trainer(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer', weight=0) -> None:
-        super().__init__(model, Dataset, optimizer,
-                         scheduler, batch_size, n_epoch, Trainer_name)
-        self.weight = weight
-
+    def __init__(config) -> None:
+        super().__init__(config)
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
         optimizer = self.optimizer
@@ -361,9 +360,19 @@ class MTL_PU_Trainer(ModelTrainer):
             # Compute the outputs and loss for the current batch
             if stage == TRAIN_STAGE:
                 self.optimizer.zero_grad()
+                
             positions, predict_size, *sf = self.model(inputs)
-            self.save_to_plot_elements('positions_pred_pupuil_size', {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
-                                                     f'{stage}_lables': torch.cat([targets, pupil_size], dim=1)})
+
+            # 使用 split 函数将第二个维度分割成两个张量
+            positions_x, positions_y = torch.split(positions, [1, 1], dim=1)
+            targets_x,targets_y = torch.split(targets, [1, 1], dim=1)
+            self.save_to_plot_elements('positions_pred_pupuil_size', 
+                            {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
+                            f'{stage}_lables': torch.cat([targets, pupil_size], dim=1)})
+
+            self.save_to_plot_elements('positions_pred', 
+                                       {f'{stage}_predict_positions_pred_pupuil_size': torch.cat([positions, predict_size], dim=1) ,
+                                        f'{stage}_lables': torch.cat([targets, pupil_size], dim=1)})
             a = torch.cat([positions, predict_size], dim=1)
 
             position_loss = criterion(positions.squeeze(), targets.squeeze())
@@ -395,9 +404,8 @@ class MTL_PU_Trainer(ModelTrainer):
 
 
 class STL_Trainer(ModelTrainer):
-    def __init__(self, model, Dataset, optimizer, scheduler=None, batch_size=64, n_epoch=15, Trainer_name='Trainer') -> None:
-        super().__init__(model, Dataset, optimizer,
-                         scheduler, batch_size, n_epoch, Trainer_name)
+    def __init__(cofig) -> None:
+        super().__init__(cofig)
 
     def model_evaluate(self, stage, data_loader, epoch):
         device = self.device
