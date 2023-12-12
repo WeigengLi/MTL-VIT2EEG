@@ -36,7 +36,7 @@ class ModelTrainer(ABC):
         if suffix != '':
             suffix = '_'+suffix
         if self.weight:
-            suffix = f'_weight{self.weight}_{suffix}'
+            suffix = f'_weight{self.weight}{suffix}'
         self.Trainer_name = f'{self.model.__class__.__name__}{suffix}'
         self.plots = {}
         self.initialization()
