@@ -17,8 +17,6 @@ This repository consists of the model and our paper proposal.
 
 `models`: Our proposed models, benchmark models, and code to evaluate models.
 
-`timeMachine`: Early version of models, codes, notebooks, Tasks that might be useful in the future.  
-
 `run.py` Code to reproduce our experiments.  
 
 ## Dataset download
@@ -69,14 +67,11 @@ tensorboard --bind_all --logdir logs
 
 Our model achieves the following performance:
 
-| Model name         | Absolute Position <br> RMSE (mm) | 
-| ------------------ |--------------------------------- |
-| CNN                | 70.2                             |
-| PyramidalCNN       | 73.6                             |
-| EEGNet             | 81.7                             |
-| InceptionTime      | 70.8                             |
-| Xception           | 78.7                             |
-| MTLT(Ours)         | 54.7                             |
+| Model name           | Absolute Position <br> RMSE (mm) | 
+| -------------------- |--------------------------------- |
+| CNN                  | 70.2 +- 1.1                      |
+| EEG2VIT-pretrained   | 55.4 +- 0.2                      |
+| MTLT-pretrained(Ours)| 54.1 +- 0.2                      |
 
 ## Citation
 We reused most codes from 
