@@ -50,7 +50,7 @@ For other installation details and different cuda versions, visit [pytorch.org](
 
 ## Training & Evaluation
 
-To train and evaluate different the models in the paper, change configurations in `run.py`, and run this command:
+To reproduce our best result using the reconstruction module in Muti-task Framework, run this command:
 
 ```train
 python run.py
