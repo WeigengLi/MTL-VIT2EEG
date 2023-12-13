@@ -56,11 +56,12 @@ def main():
     for i in range(1,6):
         model = MTLT()
         model_name = model.__class__.__name__
+        weight = 140
         # weight = MTL_WEIGHT.get(model_name, 0)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=6, gamma=0.1)
-        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight = 140,
-                                        Trainer_name=f'{model_name}_weight{140}_wc_seed1_{i}')
+        mt = TASKS_TRAINER[DEFAULT_TASK](model, Dataset, optimizer, scheduler, batch_size=64, n_epoch=15, weight = weight,
+                                        Trainer_name=f'{model_name}_weight{weight}_wc_seed1_master_{i}')
         mt.run()
 
 
